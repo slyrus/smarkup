@@ -42,6 +42,7 @@
                             (list unix-path)))))
 
 (defmethod operation-done-p ((o ch-asdf::generate-op) (c object-latex-file))
+  (declare (optimize (debug 3)))
   (let ((on-disk-time
          (file-write-date (component-pathname c)))
         (obj (asdf::find-component
@@ -51,7 +52,7 @@
     (let ((obj-date (asdf::component-property obj 'ch-asdf::last-loaded)))
       (and on-disk-time
            obj-date
-           (> on-disk-time obj-date)))))
+           (>= on-disk-time obj-date)))))
 
 (defclass object-xhtml-file (ch-asdf:object-from-variable source-file) ())
 
