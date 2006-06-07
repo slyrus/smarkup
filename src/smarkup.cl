@@ -7,10 +7,13 @@
 (defmethod perform ((op compile-op) (c filtered-object))
   (call-next-method)
   (setf (symbol-value (ch-asdf::object-symbol c))
-        (markup::apply-filters
+        (apply-filters
          (symbol-value (ch-asdf::object-symbol c))
          (object-filters c))))
 
+(defmethod component-relative-pathname ((component filtered-object)))
+
+(defmethod component-pathname ((component filtered-object)))
 
 (defparameter *pdflatex-program* "pdflatex")
 (defparameter *pdflatex-program-path*
@@ -18,7 +21,7 @@
                 *pdflatex-program*)))
     (unless found
       (setf found 
-            #+darwin "/sw/bin/pdflatex"
+            #+darwin "/opt/local/bin/pdflatex"
             #-darwin "/usr/local/bin/pdflatex"))
     found))
 
@@ -26,10 +29,9 @@
 
 (defmethod perform ((op ch-asdf::generate-op) (c object-latex-file))
   (call-next-method)
-  (markup::render-as :latex
-                     (markup::strip-invisible
-                      (symbol-value (ch-asdf::object-symbol c)))
-                     (component-pathname c)))
+  (render-as :latex
+             (symbol-value (ch-asdf::object-symbol c))
+             (component-pathname c)))
 
 (defmethod perform ((operation compile-op) (c object-latex-file))
   (with-component-directory (c)
@@ -58,11 +60,27 @@
 
 (defmethod perform ((op compile-op) (c object-xhtml-file))
   (call-next-method)
-  (markup::render-as :xhtml
-                    (markup::strip-invisible
-                     (symbol-value (ch-asdf::object-symbol c)))
-                    (component-pathname c)))
+  (let ((sexp (symbol-value (ch-asdf::object-symbol c)))
+        (file (component-pathname c)))
+    (render-as :xhtml sexp file)))
+
 (defmethod perform ((op load-op) (c object-xhtml-file))
   (call-next-method)
   (ch-util::firefox-open (ch-util::unix-name (component-pathname c))))
+
+(defgeneric render-as (type sexp file))
+
+(defun remove-from-plist (plist key)
+  (loop for (x y) on plist by #'cddr
+     append (unless (eql x key)
+               (list x y))))
+
+(defun find-file-for-types (default-file types)
+  (loop for type in types
+     do (let ((path (merge-pathnames (make-pathname :type type) default-file)))
+          (when (probe-file path)
+            (return path)))))
+
+
+
 
