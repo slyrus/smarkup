@@ -160,19 +160,23 @@
         (emit-latex-command stream (cdr (assoc type *headings*))
                             (cons heading (remove-from-plist rest :clearpage)) :newline newline))))
 
+
+(defmethod emit-latex-header (stream type children &key (newline t))
+    (destructuring-bind (heading &rest rest &key clearpage &allow-other-keys) children
+      (when clearpage
+        (emit-latex-command stream "clearpage" nil :newline t))
+      (emit-latex-command stream (cdr (assoc type *headings*))
+                          (cons heading (remove-from-plist rest :clearpage)) :newline newline)))
+
 (defmethod emit-latex-gf (stream (type (eql :h2)) children &key (newline t))
-  (declare (optimize (debug 3)))
-  (destructuring-bind (heading &rest rest &key clearpage &allow-other-keys) children
-    (when clearpage
-      (emit-latex-command stream "clearpage" nil :newline t))
-    (emit-latex-command stream (cdr (assoc type *headings*))
-                        (cons heading (remove-from-plist rest :clearpage)) :newline newline)))
+  (emit-latex-header stream type children :newline newline))
 
 (defmethod emit-latex-gf (stream (type (eql :h3)) children &key (newline t))
-  (emit-latex-command stream (cdr (assoc type *headings*)) children :newline newline))
+  (emit-latex-header stream type children :newline newline))
 
 (defmethod emit-latex-gf (stream (type (eql :h4)) children &key (newline t))
-  (emit-latex-command stream (cdr (assoc type *headings*)) children :newline newline))
+  (emit-latex-header stream type children :newline newline))
+
 
 (defmethod emit-latex-gf (stream (type (eql :bibcite)) children &key (newline nil))
   (emit-latex-command stream "cite" children :newline newline))
