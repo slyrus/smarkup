@@ -22,14 +22,17 @@
     :components
     ((:smarkup-cl-source-file "defpackage")
      (:smarkup-cl-source-file "smarkup" :depends-on (:defpackage))
+     (:smarkup-cl-source-file "smarkup-asdf" :depends-on (:defpackage :smarkup))
      (:smarkup-cl-source-file "parameters" :depends-on (:defpackage))
      (:smarkup-cl-source-file "filter" :depends-on (:defpackage :parameters))
      (:smarkup-cl-source-file "quote-reader-macro" :depends-on (:defpackage))
      (:smarkup-cl-source-file "xhtml-render"
                               :depends-on
-                              (:defpackage :filter :quote-reader-macro))
+                              (:defpackage :smarkup :filter :quote-reader-macro))
      (:smarkup-cl-source-file "latex"
                               :depends-on
-                              (:defpackage :filter :quote-reader-macro))))
+                              (:defpackage :smarkup :parameters :filter :quote-reader-macro))))
    (:static-file "version" :pathname #p"version.lisp-expr")
+   (:static-file "LICENSE")
+   (:static-file "README")
    (:static-file "bootstrap" :pathname #p"bootstrap.cl")))

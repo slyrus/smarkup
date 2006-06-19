@@ -143,10 +143,11 @@
 
 (defun setup-headings ()
   (if *document-thesis*
-    (setf *headings* *thesis-headings*)
-    (setf *headings* *article-headings*)))
-
-
+      (progn
+        (setf *headings* *thesis-headings*))
+      (progn
+        (setf *document-class* "article")
+        (setf *headings* *article-headings*))))
 
 (defmethod emit-latex-gf (stream (type (eql :h1)) children &key (newline t))
   (destructuring-bind (heading &rest rest &key (clearpage t) &allow-other-keys) children
@@ -231,9 +232,9 @@
   '(("oddsidemargin" . "0.5in")
     ("textwidth" . "6.0in")
     ("topmargin" . "0in")
-    ("headheight" . "0.2in")
+    ("headheight" . "0.1in")
     ("headsep" . "0.0in")
-    ("textheight" . "8.8in")
+    ("textheight" . "9.6in")
     ("footskip" . "0.4in")
     ("parindent" . "0.5in")))
 
@@ -302,6 +303,10 @@
   (emit-latex-freshline stream)
 
   (emit-latex stream "\\maketitle" :newline t)
+
+  (emit-latex stream "\\let\\mypdfximage\\pdfximage" :newline t)
+  (emit-latex stream "\\def\\pdfximage{\\immediate\\mypdfximage}" :newline t)
+  
   (when *document-thesis*
     (emit-latex stream "\\approvalpage" :newline t)
     (emit-latex stream "\\copyrightpage" :newline t))

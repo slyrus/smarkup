@@ -1,72 +1,12 @@
+;;; -*- Mode: lisp; outline-regexp: ";;;;;*"; indent-tabs-mode: nil -*-;;;
+;;;
+;;; file: smarkup-asdf.cl
+;;; author: cyrus harmon
+;;;
+
+;;; miscellaneous functions
 
 (in-package #:smarkup)
-
-(defclass filtered-object (ch-asdf:object-from-variable)
-  ((filters :accessor object-filters :initarg :filters)))
-
-(defmethod perform ((op compile-op) (c filtered-object))
-  (call-next-method)
-  (setf (symbol-value (ch-asdf::object-symbol c))
-        (apply-filters
-         (symbol-value (ch-asdf::object-symbol c))
-         (object-filters c))))
-
-(defmethod component-relative-pathname ((component filtered-object)))
-
-(defmethod component-pathname ((component filtered-object)))
-
-(defparameter *pdflatex-program* "pdflatex")
-(defparameter *pdflatex-program-path*
-  (let ((found (sb-ext:find-executable-in-search-path
-                *pdflatex-program*)))
-    (unless found
-      (setf found 
-            #+darwin "/opt/local/bin/pdflatex"
-            #-darwin "/usr/local/bin/pdflatex"))
-    found))
-
-(defclass object-latex-file (ch-asdf:object-from-variable generated-file) ())
-
-(defmethod perform ((op ch-asdf::generate-op) (c object-latex-file))
-  (call-next-method)
-  (render-as :latex
-             (symbol-value (ch-asdf::object-symbol c))
-             (component-pathname c)))
-
-(defmethod perform ((operation compile-op) (c object-latex-file))
-  (with-component-directory (c)
-    (let ((unix-path (ch-util::unix-name (component-pathname c))))
-      (ch-util::run-program *pdflatex-program-path*
-                            (list unix-path))
-      ;; we have to do this twice to get the references right!
-      ;; maybe 3x?
-      (ch-util::run-program *pdflatex-program-path*
-                            (list unix-path)))))
-
-(defmethod operation-done-p ((o ch-asdf::generate-op) (c object-latex-file))
-  (declare (optimize (debug 3)))
-  (let ((on-disk-time
-         (file-write-date (component-pathname c)))
-        (obj (asdf::find-component
-              (asdf::component-parent c)
-              (asdf::coerce-name (ch-asdf::object-input-object c)))))
-    
-    (let ((obj-date (asdf::component-property obj 'ch-asdf::last-loaded)))
-      (and on-disk-time
-           obj-date
-           (>= on-disk-time obj-date)))))
-
-(defclass object-xhtml-file (ch-asdf:object-from-variable source-file) ())
-
-(defmethod perform ((op compile-op) (c object-xhtml-file))
-  (call-next-method)
-  (let ((sexp (symbol-value (ch-asdf::object-symbol c)))
-        (file (component-pathname c)))
-    (render-as :xhtml sexp file)))
-
-(defmethod perform ((op load-op) (c object-xhtml-file))
-  (call-next-method)
-  (ch-util::firefox-open (ch-util::unix-name (component-pathname c))))
 
 (defgeneric render-as (type sexp file))
 
@@ -81,6 +21,25 @@
           (when (probe-file path)
             (return path)))))
 
+(defparameter *images-per-line* 5)
 
+(defun multi-line-figure (image-sequence
+                          caption
+                          &key
+                          (start 0)
+                          (end (length image-sequence))
+                          (images-per-line *images-per-line*)
+                          (width "1in"))
+  `(:figure
+    ,@(loop for i from start below end by images-per-line
+         collect
+           `(:subfigure
+             ,@(loop
+                  for j from i below (min (+ i *images-per-line*) end)
+                  collect
+                    (let ((img (elt image-sequence j)))
+                      `(:image ,(namestring img)
+                               :width ,width)))))
+    (:caption ,caption)))
 
 
