@@ -83,7 +83,7 @@
                                            #\Newline)
                                      (list #\Newline)))))
                      lines))))))
-  
+
 (defmethod filter-gf ((filter (eql :lisp)) (car (eql :lisp)) list)
   (eval-lisp car (cdr list)))
 

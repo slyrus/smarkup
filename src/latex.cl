@@ -86,9 +86,10 @@
   (when newline (emit-latex-newline stream)))
 
 (defmethod emit-latex-gf (stream (type (eql :span)) children &key newline)
-  (format stream "~{~A~}~:[~;~%~]"
-          (loop for c in children collect (emit-latex nil c))
-          newline))
+  #+nil (format stream "~{~A~}~:[~;~%~]"
+                (loop for c in children collect (emit-latex nil c))
+                newline)
+  (loop for c in children collect (emit-latex stream c)))
 
 (defun emit-latex-block (command stream children &key newline)
   (format stream "{\\~A ~{~A~}}~:[~;~%~]" command

@@ -22,24 +22,44 @@
             (return path)))))
 
 (defparameter *images-per-line* 5)
+(defparameter *images-per-page* 30)
 
 (defun multi-line-figure (image-sequence
                           caption
                           &key
                           (start 0)
-                          (end (length image-sequence))
+                          (end (1- (length image-sequence)))
                           (images-per-line *images-per-line*)
                           (width "1in"))
   `(:figure
-    ,@(loop for i from start below end by images-per-line
+    ,@(loop for i from start to end by images-per-line
          collect
            `(:subfigure
              ,@(loop
-                  for j from i below (min (+ i *images-per-line*) end)
+                  for j from i to (min (+ i images-per-line -1) end)
                   collect
                     (let ((img (elt image-sequence j)))
                       `(:image ,(namestring img)
                                :width ,width)))))
-    (:caption ,caption)))
+    ,(when caption `(:caption ,caption))))
 
+
+(defun multi-multi-line-figure (image-sequence
+                                caption
+                                &key
+                                (start 0)
+                                (end (1- (length image-sequence)))
+                                (images-per-line *images-per-line*)
+                                (images-per-page *images-per-page*)
+                                caption-on-every-page
+                                (width "1in"))
+  `(:span
+     ,@(loop for i from start to end by images-per-page
+          collect
+            (multi-line-figure image-sequence (if caption-on-every-page
+                                                  caption
+                                                  (when (= i start) caption))
+                               :start i :end (min (+ i images-per-page -1) end)
+                               :images-per-line images-per-line
+                               :width width))))
 
