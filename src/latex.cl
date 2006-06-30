@@ -383,3 +383,14 @@
   (declare (ignore newline))
   (emit-latex stream "\\listoftables" :newline t))
 
+
+;;; equations
+
+;; FIXME!!!
+
+(defmethod emit-latex-gf (stream (type (eql :equation)) children &key (newline t))
+  (declare (ignorable newline))
+  (emit-latex-command-3 stream "begin" "equation" :newline nil)
+  (dolist (p children)
+    (emit-latex stream p :newline nil))
+  (emit-latex-command stream "end" "equation"))
