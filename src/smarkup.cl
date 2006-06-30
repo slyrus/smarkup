@@ -31,17 +31,18 @@
                           (end (1- (length image-sequence)))
                           (images-per-line *images-per-line*)
                           (width "1in"))
-  `(:figure
-    ,@(loop for i from start to end by images-per-line
-         collect
-           `(:subfigure
-             ,@(loop
-                  for j from i to (min (+ i images-per-line -1) end)
-                  collect
-                    (let ((img (elt image-sequence j)))
-                      `(:image ,(namestring img)
-                               :width ,width)))))
-    ,(when caption `(:caption ,caption))))
+  (when (some #'identity image-sequence)
+    `(:figure
+      ,@(loop for i from start to end by images-per-line
+              collect
+              `(:subfigure
+                ,@(loop
+                   for j from i to (min (+ i images-per-line -1) end)
+                   collect
+                   (let ((img (elt image-sequence j)))
+                     `(:image ,(namestring img)
+                       :width ,width)))))
+      ,(when caption `(:caption ,caption)))))
 
 
 (defun multi-multi-line-figure (image-sequence
