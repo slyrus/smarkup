@@ -6,11 +6,10 @@
 
 (in-package :smarkup)
 
-(defparameter *baseline-skip* "21pt")
+(defparameter *baseline-skip* "12pt")
 (defparameter *baseline-stretch* "1.9")
 (defparameter *par-skip* "21pt")
 (defparameter *latex-graphics-params* nil)
-(defparameter default-image-width "1.4in")
 
 (defun latex-command (command &optional arg)
   (format nil "~&\\~A~@[{~A}~]~%" command arg))
@@ -122,6 +121,22 @@
           (loop for c in children collect (emit-latex nil c))
           newline))
 
+(defmethod emit-latex-gf (stream (type (eql :pseudocode)) children &key (newline))
+  (destructuring-bind (&key name (parameters " "))
+      (car children)
+    (if *document-thesis*
+        (emit-latex stream "\\ssp" :newline t)
+        (emit-latex stream (format nil "\\baselineskip~A" "12pt") :newline t))
+    (emit-latex-command-3 stream "begin" "pseudocode" :arg1 name :arg2 parameters :newline nil)
+    (format stream "~{~A~}~:[~;~%~]"
+            (loop for c in (cdr children)
+               collect (emit-latex nil c))
+            newline)
+    (emit-latex-command stream "end" "pseudocode" :newline newline)
+    (if *document-thesis*
+        (emit-latex stream (format nil "\\dsp") :newline t)
+        (emit-latex stream (format nil "\\baselineskip~A" *baseline-skip*) :newline t))))
+
 (defmethod emit-latex-gf (stream (type (eql :results)) children &key (newline nil))
   (format stream "~{~A~}~:[~;~%~]"
           (loop for c in children collect (emit-latex nil c))
@@ -145,9 +160,11 @@
 (defun setup-headings ()
   (if *document-thesis*
       (progn
+        (setf *document-options* "12pt")
         (setf *headings* *thesis-headings*))
       (progn
         (setf *document-class* "article")
+        (setf *document-options* "10pt")
         (setf *headings* *article-headings*))))
 
 (defmethod emit-latex-gf (stream (type (eql :h1)) children &key (newline t))
@@ -191,7 +208,7 @@
 
 (defmethod emit-latex-gf (stream (type (eql :image)) children &key (newline t))
   (destructuring-bind (image-pathname &key
-                                      (width default-image-width)
+                                      (width)
                                       &allow-other-keys)
       children
     (let ((image-file (ch-util:unix-name image-pathname)))
@@ -222,8 +239,11 @@
       (emit-latex-command stream "abstractsignature" nil))
     (emit-latex-command stream "end" element)))
 
+
+
 (defparameter *latex-packages*
-  '("amssymb" "amsmath" "verbatim" "graphicx" "subfigure" "hyperref" "fancyheadings" "geometry"))
+  '("amssymb" "amsmath" "verbatim" "graphicx" "subfigure" "hyperref" "fancyheadings"
+    ("geometry" . "letterpaper")))
 ;;; "scicite" "pslatex" "times" "epsfig" "graphs" "newcent"
    
 (defun include-contents-of-file-file (stream file)
@@ -242,11 +262,13 @@
 (defparameter *section-numbering-depth* 5)
 
 (defparameter *document-class* "article")
-(defparameter *document-options* "12pt")
+(defparameter *document-options* "10pt")
 
 (defun latex-document-format (stream)
   (dolist (package *latex-packages*)
-    (emit-latex-command stream "usepackage" package))
+    (if (consp package)
+        (emit-latex-command-2 stream "usepackage" :options (cdr package) :arg1 (car package))
+        (emit-latex-command stream "usepackage" package)))
   (loop for (param . val) in *document-format-parameters*
      do (emit-latex-parameter stream param val)))
 
@@ -284,21 +306,23 @@
     (when *document-campus*
       (emit-latex-command stream "campus" (list *document-campus*))))
   
-  (when *document-thesis*
-    (emit-latex stream
-                (format nil
-                        "\\def\\dsp{\\def\\baselinestretch{~A}\\large\\normalsize}"
-                        *baseline-stretch*)
-                :newline t)
-    (emit-latex stream "\\dsp" :newline t)
-
-    (emit-latex stream "\\geometry{verbose,tmargin=1.2in,bmargin=1.3in,lmargin=1.5in,rmargin=1in}" :newline t)
-    (emit-latex stream "\\addtolength{\\headheight}{\\baselineskip}" :newline t)
-    (emit-latex stream "\\lhead[\\fancyplain{}\\sl\\thepage]{\\fancyplain{}\\sl\\rightmark}" :newline t)
-    (emit-latex stream "\\rhead[\\fancyplain{}\\sl\\leftmark]{\\fancyplain{}\\sl\\thepage}" :newline t)
-    (emit-latex stream "\\lhead[\\fancyplain{}\\bfseries\\thepage]{\\fancyplain{}\\bfseries\\rightmark}" :newline t)
-    (emit-latex stream "\\rhead[\\fancyplain{}\\bfseries\\leftmark]{\\fancyplain{}\\bfseries\\thepage}" :newline t)
-    (emit-latex stream "\\hyphenpenalty=1000" :newline t))
+  (if *document-thesis*
+      (progn
+        (emit-latex stream
+                    (format nil
+                            "\\def\\dsp{\\def\\baselinestretch{~A}\\large\\normalsize}"
+                            *baseline-stretch*)
+                    :newline t)
+        (emit-latex stream "\\dsp" :newline t)
+        
+        (emit-latex stream "\\addtolength{\\headheight}{\\baselineskip}" :newline t)
+        (emit-latex stream "\\lhead[\\fancyplain{}\\sl\\thepage]{\\fancyplain{}\\sl\\rightmark}" :newline t)
+        (emit-latex stream "\\rhead[\\fancyplain{}\\sl\\leftmark]{\\fancyplain{}\\sl\\thepage}" :newline t)
+        (emit-latex stream "\\lhead[\\fancyplain{}\\bfseries\\thepage]{\\fancyplain{}\\bfseries\\rightmark}" :newline t)
+        (emit-latex stream "\\rhead[\\fancyplain{}\\bfseries\\leftmark]{\\fancyplain{}\\bfseries\\thepage}" :newline t)
+        (emit-latex stream "\\hyphenpenalty=1000" :newline t))
+      (progn
+        (emit-latex stream "\\geometry{verbose,tmargin=1in,bmargin=1in,lmargin=1in,rmargin=1in}" :newline t)))
   
   (emit-latex-command stream "begin" "document")
   (emit-latex-freshline stream)
@@ -308,11 +332,11 @@
   (emit-latex stream "\\let\\mypdfximage\\pdfximage" :newline t)
   (emit-latex stream "\\def\\pdfximage{\\immediate\\mypdfximage}" :newline t)
   
-  (when *document-thesis*
-    (emit-latex stream "\\approvalpage" :newline t)
-    (emit-latex stream "\\copyrightpage" :newline t))
-  
-  #+nil (emit-latex stream (format nil "\\baselineskip~A" *baseline-skip*) :newline t)
+  (if *document-thesis*
+      (progn
+        (emit-latex stream "\\approvalpage" :newline t)
+        (emit-latex stream "\\copyrightpage" :newline t))
+      (emit-latex stream (format nil "\\baselineskip~A" *baseline-skip*) :newline t))
   
   (dolist (p sexp)
     (emit-latex stream p))
