@@ -199,13 +199,31 @@
   (gethash entry *cite-order*))
 
 (defmethod filter-gf ((filter (eql :ref)) (car (eql :bibcite)) list)
-  (let ((cite-key (cadr list)))
-    (unless (member cite-key *cite-keys* :test 'string=)
-      (push cite-key *cite-keys*)
-      (setf (gethash cite-key *cite-order*) (incf *current-citation*)))
-    (let ((v (gethash cite-key *bibtex-database*)))
-      (if v
-          (bibtex-runtime::write-bib-entry v)
-          (warn "~%bibliography entry ~A not found~%" cite-key))))
+  (loop for  cite-key in (cdr list)
+     do
+       (unless (member cite-key *cite-keys* :test 'string=)
+         (push cite-key *cite-keys*)
+         (setf (gethash cite-key *cite-order*) (incf *current-citation*)))
+       (let ((v (gethash cite-key *bibtex-database*)))
+         (if v
+             (bibtex-runtime::write-bib-entry v)
+             (warn "~%bibliography entry ~A not found~%" cite-key))))
   (call-next-method))
+
+
+;;;
+;;; outline stuff
+;;;
+
+(defparameter *outline-elements* '(:h1 :h2 :h3 :h4 :h5 :h6))
+
+(defparameter *outline-level* 6)
+
+(defmethod filter-gf ((filter (eql :outline)) car list)
+  (let ((outline-elements
+         (subseq *outline-elements*
+                 0 (min (length *outline-elements*)
+                        *outline-level*))))
+    (remove-if-not #'(lambda (x) (member (car x) outline-elements))
+                   list)))
 

@@ -6,9 +6,9 @@
 
 (in-package :smarkup)
 
-(defparameter *baseline-skip* "12pt")
-(defparameter *baseline-stretch* "1.9")
-(defparameter *par-skip* "21pt")
+(defparameter *baseline-skip* "10pt")
+(defparameter *baseline-stretch* "1.8")
+(defparameter *par-skip* "20pt")
 (defparameter *latex-graphics-params* nil)
 
 (defun latex-command (command &optional arg)
@@ -101,19 +101,25 @@
 (defmethod emit-latex-gf (stream (type (eql :b)) children &key newline)
   (emit-latex-block "bf" stream children :newline newline))
 
+(defun single-space (stream)
+  (if *document-thesis*
+        (emit-latex stream "\\ssp" :newline t)
+        (emit-latex stream (format nil "\\baselineskip~A" "12pt") :newline t)))
+
+(defun default-space (stream)
+  (if *document-thesis*
+        (emit-latex stream (format nil "\\dsp") :newline t)
+        (emit-latex stream (format nil "\\baselineskip~A" *baseline-skip*) :newline t)))
+
 (defmethod emit-latex-gf (stream (type (eql :pre)) children &key (newline nil))
   (declare (ignore newline))
   (emit-latex-newline stream)
-  (if *document-thesis*
-      (emit-latex stream "\\ssp" :newline t)
-      (emit-latex stream (format nil "\\baselineskip~A" "12pt") :newline t))
+  (single-space stream)
   (emit-latex-command stream "begin" '("verbatim") :newline nil)
   (format stream "~{~A~}"
           (loop for c in children collect (emit-latex nil c)))
   (emit-latex-command stream "end" '("verbatim"))
-  (if *document-thesis*
-      (emit-latex stream (format nil "\\dsp") :newline t)
-      (emit-latex stream (format nil "\\baselineskip~A" *baseline-skip*) :newline t)))
+  (default-space stream))
 
 
 (defmethod emit-latex-gf (stream (type (eql :code)) children &key (newline nil))
@@ -124,18 +130,14 @@
 (defmethod emit-latex-gf (stream (type (eql :pseudocode)) children &key (newline))
   (destructuring-bind (&key name (parameters " "))
       (car children)
-    (if *document-thesis*
-        (emit-latex stream "\\ssp" :newline t)
-        (emit-latex stream (format nil "\\baselineskip~A" "12pt") :newline t))
-    (emit-latex-command-3 stream "begin" "pseudocode" :arg1 name :arg2 parameters :newline nil)
+    (single-space stream)
+    (emit-latex-command-3 stream "begin" "pseudocode" :options "framebox" :arg1 name :arg2 parameters :newline nil)
     (format stream "~{~A~}~:[~;~%~]"
             (loop for c in (cdr children)
                collect (emit-latex nil c))
             newline)
     (emit-latex-command stream "end" "pseudocode" :newline newline)
-    (if *document-thesis*
-        (emit-latex stream (format nil "\\dsp") :newline t)
-        (emit-latex stream (format nil "\\baselineskip~A" *baseline-skip*) :newline t))))
+    (default-space stream)))
 
 (defmethod emit-latex-gf (stream (type (eql :results)) children &key (newline nil))
   (format stream "~{~A~}~:[~;~%~]"
@@ -176,16 +178,21 @@
       (emit-latex stream "\\cfoot{}" :newline t))
     (if (and *document-thesis* (string-equal heading "Appendices"))
         (emit-latex-command stream "appendix" nil)
-        (emit-latex-command stream (cdr (assoc type *headings*))
-                            (cons heading (remove-from-plist rest :clearpage)) :newline newline))))
+        (progn
+          (single-space stream)
+          (emit-latex-command stream (cdr (assoc type *headings*))
+                              (cons heading (remove-from-plist rest :clearpage)) :newline newline)
+          (default-space stream)))))
 
 
 (defmethod emit-latex-header (stream type children &key (newline t))
     (destructuring-bind (heading &rest rest &key clearpage &allow-other-keys) children
       (when clearpage
         (emit-latex-command stream "clearpage" nil :newline t))
+      (single-space stream)
       (emit-latex-command stream (cdr (assoc type *headings*))
-                          (cons heading (remove-from-plist rest :clearpage)) :newline newline)))
+                          (cons heading (remove-from-plist rest :clearpage)) :newline newline)
+      (default-space stream)))
 
 (defmethod emit-latex-gf (stream (type (eql :h2)) children &key (newline t))
   (emit-latex-header stream type children :newline newline))
@@ -198,7 +205,7 @@
 
 
 (defmethod emit-latex-gf (stream (type (eql :bibcite)) children &key (newline nil))
-  (emit-latex-command stream "cite" children :newline newline))
+  (emit-latex-command stream "cite" (format nil "~{~A~^, ~}" children) :newline newline))
 
 (defmethod emit-latex-gf (stream (type (eql :caption)) children &key (newline nil))
   (emit-latex-command stream "caption" children :newline newline))

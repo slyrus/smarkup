@@ -37,10 +37,13 @@
 
 (defun html-citation (tag body)
   (declare (ignore tag))
-  (let ((refnum (get-bib-order (car body))))
-    `((:a :href
-          ,(format nil "#ref~A" refnum))
-      ,(format nil "[~A]" refnum))))
+  `(:span
+    ,@(loop for ref in body
+         collect
+         (let ((refnum (get-bib-order ref)))
+           `((:a :href
+                 ,(format nil "#ref~A" refnum))
+             ,(format nil "[~A]" refnum))))))
 
 (defun cite-text (cite)
   (let ((cite-hash (gethash cite *bibtex-database*)))
