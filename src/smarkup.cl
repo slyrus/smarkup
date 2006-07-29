@@ -15,14 +15,20 @@
      append (unless (eql x key)
                (list x y))))
 
+(defun remove-pair-from-list (list key)
+  (let ((pos (position key list)))
+    (if pos
+        (append (subseq list 0 pos)
+                (subseq list (+ pos 2))))))
+
 (defun find-file-for-types (default-file types)
   (loop for type in types
      do (let ((path (merge-pathnames (make-pathname :type type) default-file)))
           (when (probe-file path)
             (return path)))))
 
-(defparameter *images-per-line* 5)
-(defparameter *images-per-page* 30)
+(defparameter *images-per-line* 6)
+(defparameter *images-per-page* 36)
 
 (defun multi-line-figure (image-sequence
                           caption
@@ -42,7 +48,7 @@
                    (let ((img (elt image-sequence j)))
                      `(:image ,(namestring img)
                        :width ,width)))))
-      ,(when caption `(:caption ,caption)))))
+      ,(when caption `(:caption ,@(if (listp caption) caption (list caption)))))))
 
 
 (defun multi-multi-line-figure (image-sequence
@@ -64,3 +70,49 @@
                                :images-per-line images-per-line
                                :width width))))
 
+
+#+nil
+(defun multi-line-subfigure (image-sequence
+                             &key
+                             caption
+                             (start 0)
+                             (end (1- (length image-sequence)))
+                             (images-per-line *images-per-line*)
+                             (width "1in"))
+  (when (some #'identity image-sequence)
+    `(:subfigure
+      ,@(loop for i from start to end by images-per-line
+           append
+           (append
+            (loop
+               for j from i to (min (+ i images-per-line -1) end)
+               collect
+               (let ((img (elt image-sequence j)))
+                 `(:image ,(namestring img)
+                          :width ,width)))
+            `((:p)
+              (:p))))
+      ,@(when caption `(:caption ,caption)))))
+
+(defun multi-line-subfigure (image-sequence
+                             &key
+                             caption
+                             (start 0)
+                             (end (1- (length image-sequence)))
+                             (images-per-line *images-per-line*)
+                             (width "1in"))
+  (when (some #'identity image-sequence)
+    (append
+     (loop for i from start to end by images-per-line
+        collect
+          (cons
+           :subfigure
+           (append
+            (loop
+               for j from i to (min (+ i images-per-line -1) end)
+               collect
+               (let ((img (elt image-sequeNce j)))
+                 `(:image ,(namestring img)
+                          :width ,width)))
+            (when (and caption (> (+ i images-per-line) end))
+              `(:caption ,caption))))))))

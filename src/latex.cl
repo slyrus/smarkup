@@ -53,9 +53,10 @@
     (emit-latex-newline stream)
     (emit-latex-newline stream)))
 
-(defun emit-latex-command (stream command children &key (newline t))
-  (format stream "~&\\~A~@[{~A}~]~:[~;~%~]"
+(defun emit-latex-command (stream command children &key (newline t) (options))
+  (format stream "~&\\~A~@[[~A]~]~@[{~A}~]~:[~;~%~]"
           command
+          options
           (cond ((null children) nil)
                 ((listp children)
                  (apply #'concatenate 'string
@@ -235,7 +236,19 @@
   (emit-latex-command stream "end" "figure"))
 
 (defmethod emit-latex-gf (stream (type (eql :subfigure)) children &key (newline t))
-  (emit-latex-command stream "subfigure" children :newline newline))
+  (let ((caption (member :caption children)))
+    (when caption
+      (setf caption (cadr caption)
+            children (remove-pair-from-list children :caption)))
+    (apply #'emit-latex-command
+           stream "subfigure"
+           children
+           (append
+            (when caption `(:options ,caption))
+            `(:newline ,newline)))
+    (unless caption
+      (emit-latex-command-2 stream "addtocounter" :arg1 "subfigure" :arg2 "-1"))))
+
 
 (defmethod emit-latex-gf (stream (type (eql :document-element)) children &key (newline t))
   (destructuring-bind (element &rest rest) children
@@ -271,13 +284,19 @@
 (defparameter *document-class* "article")
 (defparameter *document-options* "10pt")
 
+(defparameter *document-latex-commands*
+  '("\\newcommand{\\argmax}{\\operatornamewithlimits{argmax}}"
+    "\\newcommand{\\argmin}{\\operatornamewithlimits{argmin}}"))
+
 (defun latex-document-format (stream)
   (dolist (package *latex-packages*)
     (if (consp package)
         (emit-latex-command-2 stream "usepackage" :options (cdr package) :arg1 (car package))
         (emit-latex-command stream "usepackage" package)))
   (loop for (param . val) in *document-format-parameters*
-     do (emit-latex-parameter stream param val)))
+     do (emit-latex-parameter stream param val))
+  (dolist (command *document-latex-commands*)
+    (emit-latex stream command)))
 
 (defun latex-document (stream sexp &key (options *document-options*) (class *document-class*))
   (emit-latex-command-2 stream "documentclass"
@@ -393,6 +412,11 @@
 ;; that we should output the appropriate latex bibliography here.
 (defmethod emit-latex-gf (stream (type (eql :bibliography)) children &key (newline t))
   (declare (ignore newline))
+  (destructuring-bind (&rest rest &key (clearpage t) &allow-other-keys)
+      children
+    (declare (ignore rest))
+    (when clearpage
+      (emit-latex-command stream "clearpage" nil :newline t)))
   (emit-latex stream (format nil "\\baselineskip~A" "12pt") :newline t)
   (let ((style-function (bibtex-compiler:find-bibtex-style *bibtex-style*))
       (bibtex-runtime:*cite-keys* (reverse *cite-keys*))
@@ -424,4 +448,4 @@
   (emit-latex-command-3 stream "begin" "equation" :newline nil)
   (dolist (p children)
     (emit-latex stream p :newline nil))
-  (emit-latex-command stream "end" "equation"))
+  (emit-latex-command stream "end" "equation" :newline t))
