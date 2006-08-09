@@ -45,6 +45,13 @@
 (defmethod emit-latex-gf (stream type children &key newline)
   (declare (ignore newline)))
 
+(defun emit-children-to-string (children)
+  (cond ((null children) nil)
+        ((listp children)
+         (apply #'concatenate 'string
+                (loop for c in children collect (emit-latex nil c))))
+        (t children)))
+
 (defmethod emit-latex-gf (stream (type (eql :p)) children &key (newline t))
   (emit-latex-freshline stream)
   (dolist (c children)
@@ -211,6 +218,12 @@
 (defmethod emit-latex-gf (stream (type (eql :caption)) children &key (newline nil))
   (emit-latex-command stream "caption" children :newline newline))
 
+(defmethod emit-latex-gf (stream (type (eql :label)) children &key (newline nil))
+  (emit-latex-command stream "label" children :newline newline))
+
+(defmethod emit-latex-gf (stream (type (eql :ref)) children &key (newline nil))
+  (emit-latex-command stream "ref" children :newline newline))
+
 (defmethod emit-latex-gf (stream (type (eql :centering)) children &key (newline nil))
   (emit-latex-command stream "centering" children :newline newline))
 
@@ -228,26 +241,32 @@
               :newline newline
               (when width `(:options ,(format nil "width=~A" width))))))))
   
-(defmethod emit-latex-gf (stream (type (eql :figure)) children &key (newline t))
+(defmethod emit-latex-gf (stream (type (eql :figure)) children &key (newline t) (placement "htbp"))
   (declare (ignorable newline))
-  (emit-latex-command-3 stream "begin" "figure" :options "htbp" :newline nil)
-  (dolist (p children)
-    (emit-latex stream p :newline nil))
-  (emit-latex-command stream "end" "figure"))
+  (destructuring-bind ((&key (placement placement)) (&rest children))
+      (apply #'ch-util::remove-keywordish-args '(:placement) children)
+    (emit-latex-command-3 stream "begin" "figure" :options placement :newline nil)
+    (dolist (p children)
+      (emit-latex stream p :newline nil))
+    (emit-latex-command stream "end" "figure")))
 
 (defmethod emit-latex-gf (stream (type (eql :subfigure)) children &key (newline t))
-  (let ((caption (member :caption children)))
+  (let ((caption (member :caption children :key #'car)))
     (when caption
-      (setf caption (cadr caption)
-            children (remove-pair-from-list children :caption)))
-    (apply #'emit-latex-command
-           stream "subfigure"
-           children
-           (append
-            (when caption `(:options ,caption))
-            `(:newline ,newline)))
-    (unless caption
-      (emit-latex-command-2 stream "addtocounter" :arg1 "subfigure" :arg2 "-1"))))
+      (setf caption (emit-children-to-string (cdar caption))
+            children (remove-if #'(lambda (x)
+                                    (and (listp x)
+                                         (eql (car x) :caption)))
+                                children)))
+    (apply #'concatenate 'string
+           (apply #'emit-latex-command
+                  stream "subfigure"
+                  children
+                  (append
+                   (when caption `(:options ,caption))
+                   `(:newline ,newline)))
+           (unless caption
+             #+nil (list (emit-latex-command-2 stream "addtocounter" :arg1 "subfigure" :arg2 "-1"))))))
 
 
 (defmethod emit-latex-gf (stream (type (eql :document-element)) children &key (newline t))

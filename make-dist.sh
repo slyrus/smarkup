@@ -5,5 +5,6 @@ sbcl --noinform --noprint \
     --eval '(require :asdf)' \
     --eval "(pushnew (make-pathname :directory \""`pwd`"\") asdf:*central-registry*)" \
     --eval "(asdf:operate 'asdf:load-op 'ch-util)" \
-    --eval "(ch-util:make-dist ${SYSTEMS})" \
+    --eval "(asdf:operate 'asdf:load-op 'asdf-package)" \
+    --eval "(asdf-package:package-system ${SYSTEMS})" \
     --eval '(quit)'
