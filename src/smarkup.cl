@@ -27,8 +27,8 @@
           (when (probe-file path)
             (return path)))))
 
-(defparameter *images-per-line* 6)
-(defparameter *images-per-page* 36)
+(defparameter *images-per-line* 5)
+(defparameter *images-per-page* 30)
 
 (defun multi-line-figure (image-sequence
                           caption
@@ -36,7 +36,7 @@
                           (start 0)
                           (end (1- (length image-sequence)))
                           (images-per-line *images-per-line*)
-                          (width "1in"))
+                          (width "1.1in"))
   (when (some #'identity image-sequence)
     `(:figure
       ,@(loop for i from start to end by images-per-line
@@ -115,4 +115,4 @@
                  `(:image ,(namestring img)
                           :width ,width)))
             (when (and caption (> (+ i images-per-line) end))
-              `(:caption ,caption))))))))
+              `((:caption ,caption)))))))))

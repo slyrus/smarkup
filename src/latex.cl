@@ -7,8 +7,8 @@
 (in-package :smarkup)
 
 (defparameter *baseline-skip* "10pt")
-(defparameter *baseline-stretch* "1.8")
-(defparameter *par-skip* "20pt")
+(defparameter *baseline-stretch* "1.6")
+(defparameter *par-skip* "18pt")
 (defparameter *latex-graphics-params* nil)
 
 (defun latex-command (command &optional arg)
@@ -103,21 +103,33 @@
           (loop for c in children collect (emit-latex nil c))
           newline))
 
+(defmacro with-latex-block (command stream &rest rest)
+  `(progn
+     (format ,stream "{\\~A " ,command)
+     ,@rest
+     (format ,stream "}~:[~;~%~]" t)))
+
 (defmethod emit-latex-gf (stream (type (eql :i)) children &key newline)
   (emit-latex-block "it" stream children :newline newline))
 
 (defmethod emit-latex-gf (stream (type (eql :b)) children &key newline)
   (emit-latex-block "bf" stream children :newline newline))
 
+(defparameter *document-single-space-count* 0)
+
 (defun single-space (stream)
   (if *document-thesis*
-        (emit-latex stream "\\ssp" :newline t)
-        (emit-latex stream (format nil "\\baselineskip~A" "12pt") :newline t)))
+      (progn
+        (incf *document-single-space-count*)
+        (emit-latex stream "\\ssp" :newline t))
+      (emit-latex stream (format nil "\\baselineskip~A" "12pt") :newline t)))
 
 (defun default-space (stream)
   (if *document-thesis*
-        (emit-latex stream (format nil "\\dsp") :newline t)
-        (emit-latex stream (format nil "\\baselineskip~A" *baseline-skip*) :newline t)))
+      (progn
+        (unless (plusp (decf *document-single-space-count*))
+          (emit-latex stream (format nil "\\dsp") :newline t)))
+      (emit-latex stream (format nil "\\baselineskip~A" *baseline-skip*) :newline t)))
 
 (defmethod emit-latex-gf (stream (type (eql :pre)) children &key (newline nil))
   (declare (ignore newline))
@@ -147,6 +159,17 @@
     (emit-latex-command stream "end" "pseudocode" :newline newline)
     (default-space stream)))
 
+(defmethod emit-latex-gf (stream (type (eql :soutput)) children &key (newline))
+  (declare (ignore newline))
+  (single-space stream)
+  (emit-latex stream "{\\scriptsize")
+  (emit-latex-command stream "begin" "Soutput")
+  (dolist (c children)
+    (emit-latex stream c))
+  (emit-latex-command stream "end" "Soutput")
+  (emit-latex stream "}" :newline t)
+  (default-space stream))
+
 (defmethod emit-latex-gf (stream (type (eql :results)) children &key (newline nil))
   (format stream "~{~A~}~:[~;~%~]"
           (loop for c in children collect (emit-latex nil c))
@@ -170,12 +193,20 @@
 (defun setup-headings ()
   (if *document-thesis*
       (progn
-        (setf *document-options* "12pt")
+        (setf *document-options* "11pt")
         (setf *headings* *thesis-headings*))
       (progn
         (setf *document-class* "article")
         (setf *document-options* "10pt")
         (setf *headings* *article-headings*))))
+
+(defmethod emit-latex-gf (stream (type (eql :appendices)) children &key (newline t))
+  (declare (ignore newline))
+  (single-space stream)
+  (emit-latex-command stream "appendix" nil)
+  (loop for c in children
+     do (emit-latex stream c))
+  (default-space stream))
 
 (defmethod emit-latex-gf (stream (type (eql :h1)) children &key (newline t))
   (destructuring-bind (heading &rest rest &key (clearpage t) &allow-other-keys) children
@@ -185,16 +216,16 @@
       (emit-latex stream "\\pagestyle{fancyplain}" :newline t)
       (emit-latex stream "\\cfoot{}" :newline t))
     (if (and *document-thesis* (string-equal heading "Appendices"))
-        (emit-latex-command stream "appendix" nil)
         (progn
-          (single-space stream)
+          (emit-latex-command stream "appendix" nil))
+        (progn
           (emit-latex-command stream (cdr (assoc type *headings*))
                               (cons heading (remove-from-plist rest :clearpage)) :newline newline)
           (default-space stream)))))
 
 
 (defmethod emit-latex-header (stream type children &key (newline t))
-    (destructuring-bind (heading &rest rest &key clearpage &allow-other-keys) children
+    (destructuring-bind (heading &rest rest &key clearpage no-number &allow-other-keys) children
       (when clearpage
         (emit-latex-command stream "clearpage" nil :newline t))
       (single-space stream)
@@ -266,7 +297,7 @@
                    (when caption `(:options ,caption))
                    `(:newline ,newline)))
            (unless caption
-             #+nil (list (emit-latex-command-2 stream "addtocounter" :arg1 "subfigure" :arg2 "-1"))))))
+             (list (emit-latex-command-2 stream "addtocounter" :arg1 "subfigure" :arg2 "-1"))))))
 
 
 (defmethod emit-latex-gf (stream (type (eql :document-element)) children &key (newline t))
@@ -281,7 +312,7 @@
 
 
 (defparameter *latex-packages*
-  '("amssymb" "amsmath" "verbatim" "graphicx" "subfigure" "hyperref" "fancyheadings"
+  '("amssymb" "amsmath" "verbatim" "graphicx" "subfigure" "hyperref" "fancyheadings" "longtable"
     ("geometry" . "letterpaper")))
 ;;; "scicite" "pslatex" "times" "epsfig" "graphs" "newcent"
    
@@ -361,11 +392,17 @@
         (emit-latex stream "\\dsp" :newline t)
         
         (emit-latex stream "\\addtolength{\\headheight}{\\baselineskip}" :newline t)
-        (emit-latex stream "\\lhead[\\fancyplain{}\\sl\\thepage]{\\fancyplain{}\\sl\\rightmark}" :newline t)
-        (emit-latex stream "\\rhead[\\fancyplain{}\\sl\\leftmark]{\\fancyplain{}\\sl\\thepage}" :newline t)
-        (emit-latex stream "\\lhead[\\fancyplain{}\\bfseries\\thepage]{\\fancyplain{}\\bfseries\\rightmark}" :newline t)
-        (emit-latex stream "\\rhead[\\fancyplain{}\\bfseries\\leftmark]{\\fancyplain{}\\bfseries\\thepage}" :newline t)
-        (emit-latex stream "\\hyphenpenalty=1000" :newline t))
+        #+nil
+        (progn
+          (emit-latex stream "\\lhead[\\fancyplain{}\\sl\\thepage]{\\fancyplain{}\\sl\\rightmark}" :newline t)
+          (emit-latex stream "\\rhead[\\fancyplain{}\\sl\\leftmark]{\\fancyplain{}\\sl\\thepage}" :newline t)
+          (emit-latex stream "\\lhead[\\fancyplain{}\\bfseries\\thepage]{\\fancyplain{}\\bfseries\\rightmark}" :newline t)
+          (emit-latex stream "\\rhead[\\fancyplain{}\\bfseries\\leftmark]{\\fancyplain{}\\bfseries\\thepage}" :newline t))
+        (progn (emit-latex stream "\\lhead[\\fancyplain{}{}]{\\fancyplain{}{\\bfseries\\leftmark}}" :newline t)
+               (emit-latex stream "\\rhead[\\fancyplain{}{}]{\\fancyplain{\\bfseries\\thepage}{\\bfseries\\thepage}}" :newline t))
+        (emit-latex stream "\\hyphenpenalty=1000" :newline t)
+        (emit-latex stream "\\clubpenalty=500" :newline t)
+        (emit-latex stream "\\widowpenalty=500" :newline t))
       (progn
         (emit-latex stream "\\geometry{verbose,tmargin=1in,bmargin=1in,lmargin=1in,rmargin=1in}" :newline t)))
   
@@ -436,7 +473,7 @@
     (declare (ignore rest))
     (when clearpage
       (emit-latex-command stream "clearpage" nil :newline t)))
-  (emit-latex stream (format nil "\\baselineskip~A" "12pt") :newline t)
+  (emit-latex stream (format nil "\\baselineskip~A" "11pt") :newline t)
   (let ((style-function (bibtex-compiler:find-bibtex-style *bibtex-style*))
       (bibtex-runtime:*cite-keys* (reverse *cite-keys*))
       (bibtex-runtime:*bib-macros* *bibtex-macros*)
@@ -468,3 +505,100 @@
   (dolist (p children)
     (emit-latex stream p :newline nil))
   (emit-latex-command stream "end" "equation" :newline t))
+
+;;; tables
+
+(defmethod emit-latex-gf (stream (type (eql :table)) children &key newline)
+  (destructuring-bind ((&key cols
+                             top-line) (&rest children))
+      (apply #'ch-util::remove-keywordish-args '(:cols
+                                                 :top-line) children)
+    (emit-latex-command-3 stream "begin" "tabular" :arg1 cols)
+    (when top-line
+      (emit-latex stream (format nil "\\hline~%")))
+    (loop for c in children collect
+         (emit-latex stream c))
+    (emit-latex-command-3 stream "end" "tabular")
+    (when newline (emit-latex-newline stream))))
+
+(defun emit-table-row (stream children &key (newline t))
+  (emit-latex stream (format nil "~{~A~^ & ~}\\\\"
+                             (mapcar #'(lambda (x)
+                                         (emit-latex nil x))
+                                     children)) :newline newline))
+
+(defmethod emit-latex-gf (stream (type (eql :longtable)) children &key newline)
+  (destructuring-bind ((&key cols
+                             top-line
+                             heading
+                             caption
+                             (first-heading heading)
+                             (first-caption caption)
+                             (font-size "small")) (&rest children))
+      (apply #'ch-util::remove-keywordish-args '(:cols
+                                                 :top-line
+                                                 :heading
+                                                 :caption
+                                                 :first-heading
+                                                 :first-caption
+                                                 :font-size) children)
+    
+    (single-space stream)
+    (with-latex-block font-size
+      stream
+      (emit-latex-command-3 stream "begin" "longtable" :arg1 cols)
+
+      (when first-caption
+        (destructuring-bind (first-caption)
+            first-caption
+          (emit-latex-command stream "caption" first-caption :newline nil)
+          (emit-latex stream "\\\\" :newline t)))
+
+      (when top-line
+        (emit-latex stream "\\hline" :newline t))
+
+      (when first-heading
+        (emit-table-row stream (car first-heading))
+        (loop for c in (cdr first-heading)
+           do (emit-latex stream c)))
+      (emit-latex stream "\\endfirsthead" :newline t)
+
+      (when caption
+        (destructuring-bind (caption)
+            caption
+          (emit-latex-command stream "caption" caption :newline nil)
+          (emit-latex stream "\\\\" :newline t)))
+
+      (when top-line
+        (emit-latex stream "\\hline" :newline t))
+
+      (when heading
+        (emit-table-row stream (car heading))
+        (loop for c in (cdr heading)
+           do (emit-latex stream c)))
+      (emit-latex stream "\\endhead" :newline t)
+
+      (loop for c in children collect
+           (emit-latex stream c))
+      (emit-latex-command-3 stream "end" "longtable")
+      (when newline (emit-latex-newline stream)))
+    (default-space stream)))
+
+(defmethod emit-latex-gf (stream (type (eql :table-row)) children &key (newline t))
+  (destructuring-bind ((&key multicolumn (spec "|c|")) (&rest children))
+      (apply #'ch-util::remove-keywordish-args '(:multicolumn :spec) children)
+    (if multicolumn
+        (progn (apply #'emit-latex-command-3 stream "multicolumn" multicolumn
+                      :arg1 spec
+                      :newline nil
+                      :arg2 (mapcar #'(lambda (x)
+                                        (emit-latex nil x))
+                                    children))
+               (emit-latex stream "\\\\" :newline newline))
+        (emit-latex stream (format nil "~{~A~^ & ~}\\\\"
+                                   (mapcar #'(lambda (x)
+                                               (emit-latex nil x))
+                                           children)) :newline newline))))
+
+(defmethod emit-latex-gf (stream (type (eql :horizontal-line)) children &key (newline t))
+  (emit-latex stream "\\hline" :newline newline))
