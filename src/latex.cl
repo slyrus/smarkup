@@ -35,6 +35,9 @@
          (apply #'emit-latex-gf stream (caar thing) (cdr thing)
                 (when newline-supplied-p `(:newline ,newline))))))
                
+(defmethod emit-latex (stream (thing (eql :nbsp)) &key (newline nil))
+  (emit-latex stream "~" :newline newline))
+
 (defun emit-latex-freshline (stream)
   (format stream "~&"))
 
@@ -60,8 +63,13 @@
     (emit-latex-newline stream)
     (emit-latex-newline stream)))
 
-(defun emit-latex-command (stream command children &key (newline t) (options))
-  (format stream "~&\\~A~@[[~A]~]~@[{~A}~]~:[~;~%~]"
+(defun emit-latex-command (stream command children
+                           &key
+                           (newline t)
+                           (initial-freshline t)
+                           (options))
+  (format stream "~:[~;~&~]\\~A~@[[~A]~]~@[{~A}~]~:[~;~%~]"
+          initial-freshline
           command
           options
           (cond ((null children) nil)
@@ -209,32 +217,38 @@
   (default-space stream))
 
 (defmethod emit-latex-gf (stream (type (eql :h1)) children &key (newline t))
-  (destructuring-bind (heading &rest rest &key (clearpage t) &allow-other-keys) children
+  (ch-util::with-keyword-args ((label (clearpage t) no-number) children)
+      children
+    (declare (ignore no-number))
     (when clearpage
       (emit-latex-command stream "clearpage" nil :newline t))
     (when *document-thesis*
       (emit-latex stream "\\pagestyle{fancyplain}" :newline t)
       (emit-latex stream "\\cfoot{}" :newline t))
-    (if (and *document-thesis* (string-equal heading "Appendices"))
-        (progn
-          (emit-latex-command stream "appendix" nil))
-        (progn
-          (emit-latex-command stream (cdr (assoc type *headings*))
-                              (cons heading (remove-from-plist rest :clearpage)) :newline newline)
-          (default-space stream)))))
+    (emit-latex-command stream (cdr (assoc type *headings*))
+                        children :newline newline)
+    (when label
+      (emit-latex-command stream "label" label :newline newline))))
 
 
 (defmethod emit-latex-header (stream type children &key (newline t))
-    (destructuring-bind (heading &rest rest &key clearpage no-number &allow-other-keys) children
-      (when clearpage
-        (emit-latex-command stream "clearpage" nil :newline t))
-      (single-space stream)
-      (emit-latex-command stream (cdr (assoc type *headings*))
-                          (cons heading (remove-from-plist rest :clearpage)) :newline newline)
-      (default-space stream)))
+  (ch-util::with-keyword-args ((label clearpage no-number) children)
+      children
+    (when clearpage
+      (emit-latex-command stream "clearpage" nil :newline t))
+    (single-space stream)
+    (emit-latex-command stream (cdr (assoc type *headings*))
+                        children :newline newline)
+    (when label
+      (emit-latex-command stream "label" label :newline newline))
+    (default-space stream)))
 
 (defmethod emit-latex-gf (stream (type (eql :h2)) children &key (newline t))
-  (emit-latex-header stream type children :newline newline))
+  (emit-latex-header stream type children :newline newline)
+  #+nil (ch-util::with-keyword-args ((label) children)
+            children
+          (when label
+            (emit-latex-command stream 'label label :newline newline))))
 
 (defmethod emit-latex-gf (stream (type (eql :h3)) children &key (newline t))
   (emit-latex-header stream type children :newline newline))
@@ -252,8 +266,13 @@
 (defmethod emit-latex-gf (stream (type (eql :label)) children &key (newline nil))
   (emit-latex-command stream "label" children :newline newline))
 
-(defmethod emit-latex-gf (stream (type (eql :ref)) children &key (newline nil))
-  (emit-latex-command stream "ref" children :newline newline))
+(defmethod emit-latex-gf (stream (type (eql :ref)) children &key newline)
+  (declare (ignore newline))
+  (emit-latex-command stream "ref" children :initial-freshline nil :newline nil))
+
+(defmethod emit-latex-gf (stream (type (eql :nbsp)) children &key newline)
+  (declare (ignore newline children))
+  (emit-latex stream "~"))
 
 (defmethod emit-latex-gf (stream (type (eql :centering)) children &key (newline nil))
   (emit-latex-command stream "centering" children :newline newline))
@@ -274,9 +293,11 @@
   
 (defmethod emit-latex-gf (stream (type (eql :figure)) children &key (newline t) (placement "htbp"))
   (declare (ignorable newline))
-  (destructuring-bind ((&key (placement placement)) (&rest children))
-      (apply #'ch-util::remove-keywordish-args '(:placement) children)
+  (ch-util::with-keyword-args (((placement placement) label) children)
+      children
     (emit-latex-command-3 stream "begin" "figure" :options placement :newline nil)
+    (when label
+      (emit-latex-command stream "label" label :newline t))
     (dolist (p children)
       (emit-latex stream p :newline nil))
     (emit-latex-command stream "end" "figure")))

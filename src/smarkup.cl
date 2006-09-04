@@ -52,20 +52,20 @@
 
 
 (defun multi-multi-line-figure (image-sequence
-                                caption
                                 &key
+                                caption
+                                first-caption
                                 (start 0)
                                 (end (1- (length image-sequence)))
                                 (images-per-line *images-per-line*)
                                 (images-per-page *images-per-page*)
-                                caption-on-every-page
                                 (width "1in"))
   `(:span
      ,@(loop for i from start to end by images-per-page
           collect
-            (multi-line-figure image-sequence (if caption-on-every-page
-                                                  caption
-                                                  (when (= i start) caption))
+            (multi-line-figure image-sequence (if (= i start)
+                                                  first-caption
+                                                  caption)
                                :start i :end (min (+ i images-per-page -1) end)
                                :images-per-line images-per-line
                                :width width))))
