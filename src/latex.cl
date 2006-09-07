@@ -38,6 +38,12 @@
 (defmethod emit-latex (stream (thing (eql :nbsp)) &key (newline nil))
   (emit-latex stream "~" :newline newline))
 
+(defmethod emit-latex (stream (thing (eql :qquad)) &key (newline nil))
+  (emit-latex stream "\\qquad" :newline newline))
+
+(defmethod emit-latex (stream (thing (eql :quad)) &key (newline nil))
+  (emit-latex stream "\\quad" :newline newline))
+
 (defun emit-latex-freshline (stream)
   (format stream "~&"))
 
@@ -84,6 +90,18 @@
 
 (defun emit-latex-command-3 (stream command section &key options arg1 arg2 (newline t))
   (format stream "~&\\~A{~A}~@[[~A]~]~@[{~A}~]~@[{~A}~]~:[~;~%~]" command section options arg1 arg2 newline))
+
+(defun emit-latex-command-4 (stream command children
+                           &key
+                           (newline t)
+                           (initial-freshline t)
+                           (options))
+  (format stream "~:[~;~&~]\\~A~@[[~A]~]{"
+          initial-freshline
+          command
+          options)
+  (loop for c in children do (emit-latex stream c))
+  (format stream "}~:[~;~%~]" newline))
 
 (defun emit-latex-parameter (stream command children &key (newline t))
   (format stream "~&\\~A~@[ ~A~]~:[~;~%~]"
@@ -296,20 +314,17 @@
   (ch-util::with-keyword-args (((placement placement) label) children)
       children
     (emit-latex-command-3 stream "begin" "figure" :options placement :newline nil)
-    (when label
-      (emit-latex-command stream "label" label :newline t))
     (dolist (p children)
       (emit-latex stream p :newline nil))
+    (when label
+      (emit-latex-command stream "label" label :newline t))
     (emit-latex-command stream "end" "figure")))
 
 (defmethod emit-latex-gf (stream (type (eql :subfigure)) children &key (newline t))
-  (let ((caption (member :caption children :key #'car)))
+  (ch-util::with-keyword-args ((caption) children)
+      children
     (when caption
-      (setf caption (emit-children-to-string (cdar caption))
-            children (remove-if #'(lambda (x)
-                                    (and (listp x)
-                                         (eql (car x) :caption)))
-                                children)))
+      (setf caption (emit-children-to-string caption)))
     (apply #'concatenate 'string
            (apply #'emit-latex-command
                   stream "subfigure"
@@ -319,7 +334,6 @@
                    `(:newline ,newline)))
            (unless caption
              (list (emit-latex-command-2 stream "addtocounter" :arg1 "subfigure" :arg2 "-1"))))))
-
 
 (defmethod emit-latex-gf (stream (type (eql :document-element)) children &key (newline t))
   (destructuring-bind (element &rest rest) children

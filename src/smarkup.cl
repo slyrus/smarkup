@@ -54,7 +54,7 @@
 (defun multi-multi-line-figure (image-sequence
                                 &key
                                 caption
-                                first-caption
+                                (first-caption caption)
                                 (start 0)
                                 (end (1- (length image-sequence)))
                                 (images-per-line *images-per-line*)
@@ -115,4 +115,4 @@
                  `(:image ,(namestring img)
                           :width ,width)))
             (when (and caption (> (+ i images-per-line) end))
-              `((:caption ,caption)))))))))
+              `(:caption ,caption))))))))
