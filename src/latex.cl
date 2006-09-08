@@ -141,21 +141,24 @@
 (defmethod emit-latex-gf (stream (type (eql :b)) children &key newline)
   (emit-latex-block "bf" stream children :newline newline))
 
+(defmethod emit-latex-gf (stream (type (eql :sc)) children &key newline)
+  (emit-latex-block "sc" stream children :newline newline))
+
 (defparameter *document-single-space-count* 0)
 
 (defun single-space (stream)
-  (if *document-thesis*
-      (progn
-        (incf *document-single-space-count*)
-        (emit-latex stream "\\ssp" :newline t))
-      (emit-latex stream (format nil "\\baselineskip~A" "12pt") :newline t)))
+  (cond ((equal *document-class* "ucthesis")
+         (incf *document-single-space-count*)
+         (emit-latex stream "\\ssp" :newline t))
+        ((equal *document-class* "beamer"))
+        (t (emit-latex stream (format nil "\\baselineskip~A" "12pt") :newline t))))
 
 (defun default-space (stream)
-  (if *document-thesis*
-      (progn
-        (unless (plusp (decf *document-single-space-count*))
-          (emit-latex stream (format nil "\\dsp") :newline t)))
-      (emit-latex stream (format nil "\\baselineskip~A" *baseline-skip*) :newline t)))
+  (cond ((equal *document-class* "ucthesis")
+         (unless (plusp (decf *document-single-space-count*))
+           (emit-latex stream (format nil "\\dsp") :newline t)))
+        ((equal *document-class* "beamer"))
+        (t (emit-latex stream (format nil "\\baselineskip~A" *baseline-skip*) :newline t))))
 
 (defmethod emit-latex-gf (stream (type (eql :pre)) children &key (newline nil))
   (declare (ignore newline))
@@ -214,17 +217,15 @@
                                   (:h3 . "subsection")
                                   (:h4 . "subsubsection")))
 
-(defparameter *headings* *article-headings*)
+(defun get-headings ()
+  (cond ((equal *document-class* "ucthesis")
+         *thesis-headings*)
+        (t *article-headings*)))
 
 (defun setup-headings ()
-  (if *document-thesis*
-      (progn
-        (setf *document-options* "11pt")
-        (setf *headings* *thesis-headings*))
-      (progn
-        (setf *document-class* "article")
-        (setf *document-options* "10pt")
-        (setf *headings* *article-headings*))))
+  (if (equal *document-class* "ucthesis")
+      (setf *document-options* "11pt")
+      (setf *document-options* "10pt")))
 
 (defmethod emit-latex-gf (stream (type (eql :appendices)) children &key (newline t))
   (declare (ignore newline))
@@ -240,10 +241,10 @@
     (declare (ignore no-number))
     (when clearpage
       (emit-latex-command stream "clearpage" nil :newline t))
-    (when *document-thesis*
+    (when (equal *document-class* "ucthesis")
       (emit-latex stream "\\pagestyle{fancyplain}" :newline t)
       (emit-latex stream "\\cfoot{}" :newline t))
-    (emit-latex-command stream (cdr (assoc type *headings*))
+    (emit-latex-command stream (cdr (assoc type (get-headings)))
                         children :newline newline)
     (when label
       (emit-latex-command stream "label" label :newline newline))))
@@ -255,7 +256,7 @@
     (when clearpage
       (emit-latex-command stream "clearpage" nil :newline t))
     (single-space stream)
-    (emit-latex-command stream (cdr (assoc type *headings*))
+    (emit-latex-command stream (cdr (assoc type (get-headings)))
                         children :newline newline)
     (when label
       (emit-latex-command stream "label" label :newline newline))
@@ -397,7 +398,7 @@
     (emit-latex-command stream "author" (list *document-author*)))
   (when *document-date*
     (emit-latex-command stream "date" (list *document-date*)))
-  (when *document-thesis*
+  (when (equal *document-class* "ucthesis")
     (when *document-degree-year*
       (emit-latex-command stream "degreeyear" (list *document-degree-year*)))
     (when *document-degree-semester*
@@ -417,29 +418,29 @@
     (when *document-campus*
       (emit-latex-command stream "campus" (list *document-campus*))))
   
-  (if *document-thesis*
-      (progn
-        (emit-latex stream
-                    (format nil
-                            "\\def\\dsp{\\def\\baselinestretch{~A}\\large\\normalsize}"
-                            *baseline-stretch*)
-                    :newline t)
-        (emit-latex stream "\\dsp" :newline t)
+  (cond ((equal *document-class* "ucthesis")
+         (emit-latex stream
+                     (format nil
+                             "\\def\\dsp{\\def\\baselinestretch{~A}\\large\\normalsize}"
+                             *baseline-stretch*)
+                     :newline t)
+         (emit-latex stream "\\dsp" :newline t)
         
-        (emit-latex stream "\\addtolength{\\headheight}{\\baselineskip}" :newline t)
-        #+nil
-        (progn
-          (emit-latex stream "\\lhead[\\fancyplain{}\\sl\\thepage]{\\fancyplain{}\\sl\\rightmark}" :newline t)
-          (emit-latex stream "\\rhead[\\fancyplain{}\\sl\\leftmark]{\\fancyplain{}\\sl\\thepage}" :newline t)
-          (emit-latex stream "\\lhead[\\fancyplain{}\\bfseries\\thepage]{\\fancyplain{}\\bfseries\\rightmark}" :newline t)
-          (emit-latex stream "\\rhead[\\fancyplain{}\\bfseries\\leftmark]{\\fancyplain{}\\bfseries\\thepage}" :newline t))
-        (progn (emit-latex stream "\\lhead[\\fancyplain{}{}]{\\fancyplain{}{\\bfseries\\leftmark}}" :newline t)
-               (emit-latex stream "\\rhead[\\fancyplain{}{}]{\\fancyplain{\\bfseries\\thepage}{\\bfseries\\thepage}}" :newline t))
-        (emit-latex stream "\\hyphenpenalty=1000" :newline t)
-        (emit-latex stream "\\clubpenalty=500" :newline t)
-        (emit-latex stream "\\widowpenalty=500" :newline t))
-      (progn
-        (emit-latex stream "\\geometry{verbose,tmargin=1in,bmargin=1in,lmargin=1in,rmargin=1in}" :newline t)))
+         (emit-latex stream "\\addtolength{\\headheight}{\\baselineskip}" :newline t)
+         #+nil
+         (progn
+           (emit-latex stream "\\lhead[\\fancyplain{}\\sl\\thepage]{\\fancyplain{}\\sl\\rightmark}" :newline t)
+           (emit-latex stream "\\rhead[\\fancyplain{}\\sl\\leftmark]{\\fancyplain{}\\sl\\thepage}" :newline t)
+           (emit-latex stream "\\lhead[\\fancyplain{}\\bfseries\\thepage]{\\fancyplain{}\\bfseries\\rightmark}" :newline t)
+           (emit-latex stream "\\rhead[\\fancyplain{}\\bfseries\\leftmark]{\\fancyplain{}\\bfseries\\thepage}" :newline t))
+         (progn (emit-latex stream "\\lhead[\\fancyplain{}{}]{\\fancyplain{}{\\bfseries\\leftmark}}" :newline t)
+                (emit-latex stream "\\rhead[\\fancyplain{}{}]{\\fancyplain{\\bfseries\\thepage}{\\bfseries\\thepage}}" :newline t))
+         (emit-latex stream "\\hyphenpenalty=1000" :newline t)
+         (emit-latex stream "\\clubpenalty=500" :newline t)
+         (emit-latex stream "\\widowpenalty=500" :newline t))
+        ((equal *document-class* "beamer"))
+        (t
+         (emit-latex stream "\\geometry{verbose,tmargin=1in,bmargin=1in,lmargin=1in,rmargin=1in}" :newline t)))
   
   (emit-latex-command stream "begin" "document")
   (emit-latex-freshline stream)
@@ -449,11 +450,12 @@
   (emit-latex stream "\\let\\mypdfximage\\pdfximage" :newline t)
   (emit-latex stream "\\def\\pdfximage{\\immediate\\mypdfximage}" :newline t)
   
-  (if *document-thesis*
-      (progn
-        (emit-latex stream "\\approvalpage" :newline t)
-        (emit-latex stream "\\copyrightpage" :newline t))
-      (emit-latex stream (format nil "\\baselineskip~A" *baseline-skip*) :newline t))
+  (cond ((equal *document-class* "ucthesis")
+         (progn
+           (emit-latex stream "\\approvalpage" :newline t)
+           (emit-latex stream "\\copyrightpage" :newline t)))
+        ((equal *document-class* "beamer"))
+        (t (emit-latex stream (format nil "\\baselineskip~A" *baseline-skip*) :newline t)))
   
   (dolist (p sexp)
     (emit-latex stream p))
@@ -480,8 +482,7 @@
 ;;; The main entry point to this stuff
 
 (defmethod render-as ((type (eql :latex)) sexp file)
-  (let ((*document-thesis* *document-thesis*)
-        (*document-class* *document-class*)
+  (let ((*document-class* *document-class*)
         (*document-degree-year* *document-degree-year*)
         (*document-degree-semester* *document-degree-semester*)
         (*document-degree* *document-degree*)
@@ -491,7 +492,6 @@
         (*document-prev-degrees* *document-prev-degrees*)
         (*document-field* *document-field*)
         (*document-campus* *document-campus*)
-        (*headings* *headings*)
         (*latex-packages* *latex-packages*)
         (*document-format-parameters* *document-format-parameters*))
     (setup-headings))
@@ -508,7 +508,8 @@
     (declare (ignore rest))
     (when clearpage
       (emit-latex-command stream "clearpage" nil :newline t)))
-  (emit-latex stream (format nil "\\baselineskip~A" "11pt") :newline t)
+  (unless (equal *document-class* "beamer")
+    (emit-latex stream (format nil "\\baselineskip~A" "11pt") :newline t))
   (let ((style-function (bibtex-compiler:find-bibtex-style *bibtex-style*))
       (bibtex-runtime:*cite-keys* (reverse *cite-keys*))
       (bibtex-runtime:*bib-macros* *bibtex-macros*)
@@ -637,3 +638,26 @@
 
 (defmethod emit-latex-gf (stream (type (eql :horizontal-line)) children &key (newline t))
   (emit-latex stream "\\hline" :newline newline))
+
+;;;
+;;;
+;;; beamer stuff
+(defmethod emit-latex-gf (stream (type (eql :slide)) children &key (newline t))
+  (ch-util::with-keyword-args ((title) children)
+      children
+    (emit-latex-command-2 stream "frame")
+    (format stream "{")
+    (when title (emit-latex-command-2 stream "frametitle" :arg1 title))
+    (loop for c in children do (emit-latex stream c))
+    (format stream "}")
+    (when newline
+      (emit-latex-newline stream))))
+
+(defmethod emit-latex-gf (stream (type (eql :title-page)) children &key (newline t))
+  (declare (ignore newline))
+  (emit-latex-command-2 stream "titlepage"))
+
+(defmethod emit-latex-gf (stream (type (eql :table-of-contents)) children &key (newline t))
+  (declare (ignore newline))
+  (emit-latex-command-2 stream "tableofcontents"))
+
