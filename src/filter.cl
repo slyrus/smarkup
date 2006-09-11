@@ -119,6 +119,10 @@
   (setf *document-title* (cadr list))
   (call-next-method))
 
+(defmethod filter-gf ((filter (eql :smarkup-metadata)) (car (eql :subtitle)) list)
+  (setf *document-subtitle* (cadr list))
+  (call-next-method))
+
 (defmethod filter-gf ((filter (eql :smarkup-metadata)) (car (eql :author)) list)
   (setf *document-author* (cadr list))
   (call-next-method))

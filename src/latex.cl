@@ -289,7 +289,7 @@
     (let ((label (if figure-label
                      "caption"
                      "caption*")))
-      (emit-latex-command stream label children :newline newline))))
+      (emit-latex-command stream label children :newline newline :initial-freshline nil))))
 
 (defmethod emit-latex-gf (stream (type (eql :label)) children &key (newline nil))
   (emit-latex-command stream "label" children :newline newline))
@@ -330,8 +330,8 @@
       (emit-latex-command stream "label" label :newline t))
     (emit-latex-command stream "end" "figure")))
 
-(defmethod emit-latex-gf (stream (type (eql :subfigure)) children &key (newline t))
-  (ch-util::with-keyword-args ((caption) children)
+(defmethod emit-latex-gf (stream (type (eql :subfigure)) children &key (newline nil))
+  (ch-util::with-keyword-args ((caption (increment-counter t)) children)
       children
     (when caption
       (setf caption (emit-children-to-string caption)))
@@ -342,8 +342,8 @@
                   (append
                    (when caption `(:options ,caption))
                    `(:newline ,newline)))
-           (unless caption
-             (list (emit-latex-command-2 stream "addtocounter" :arg1 "subfigure" :arg2 "-1"))))))
+           (unless (or caption increment-counter)
+             (list (emit-latex-command-2 stream "addtocounter" :arg1 "subfigure" :arg2 "-1" :newline nil))))))
 
 (defmethod emit-latex-gf (stream (type (eql :document-element)) children &key (newline t))
   (destructuring-bind (element &rest rest) children
@@ -398,7 +398,8 @@
 \\definecolor{nicegreen}{RGB}{10,100,10}
 \\setbeamercolor*{normal text}{bg=black,fg=white}
 \\setbeamercolor{structure}{fg=nicegreen}
-}")
+}
+")
 
 (defun latex-document (stream sexp &key (options *document-options*) (class *document-class*))
   (emit-latex-command-2 stream "documentclass"
@@ -410,6 +411,8 @@
 
   (when *document-title*
     (emit-latex-command stream "title" (list *document-title*)))
+  (when *document-subtitle*
+    (emit-latex-command stream "subtitle" (list *document-subtitle*)))
   (when *document-author*
     (emit-latex-command stream "author" (list *document-author*)))
   (when *document-date*
@@ -439,7 +442,7 @@
                      (format nil
                              "\\def\\dsp{\\def\\baselinestretch{~A}\\large\\normalsize}"
                              *baseline-stretch*)
-                     :slinewline t)
+                     :newline t)
          (emit-latex stream "\\dsp" :newline t)
         
          (emit-latex stream "\\addtolength{\\headheight}{\\baselineskip}" :newline t)
@@ -558,6 +561,24 @@
   (dolist (p children)
     (emit-latex stream p :newline nil))
   (emit-latex-command stream "end" "equation" :newline t))
+
+(defmethod emit-latex-gf (stream (type (eql :matrix)) children &key (newline t))
+  (declare (ignorable newline))
+  (princ "$" stream)
+  (emit-latex-command-3 stream "begin" "matrix" :newline nil)
+  (dolist (p children)
+    (emit-latex stream p :newline nil))
+  (emit-latex-command stream "end" "matrix" :newline nil)
+  (princ "$" stream))
+
+(defmethod emit-latex-gf (stream (type (eql :bmatrix)) children &key (newline t))
+  (declare (ignorable newline))
+  (princ "$" stream)
+  (emit-latex-command-3 stream "begin" "bmatrix" :newline nil)
+  (dolist (p children)
+    (emit-latex stream p :newline nil))
+  (emit-latex-command stream "end" "bmatrix" :newline nil)
+  (princ "$" stream))
 
 ;;; tables
 
@@ -687,3 +708,17 @@
   (declare (ignore newline))
   (emit-latex-command-2 stream "item")
   (loop for c in children do (emit-latex stream c)))
+
+(defmethod emit-latex-gf (stream (type (eql :columns)) children &key (newline t))
+  (emit-latex-command stream "begin" '("columns") :newline newline)
+  (loop for c in children do (emit-latex stream c))
+  (emit-latex-command stream "end" '("columns") :newline newline))
+
+(defmethod emit-latex-gf (stream (type (eql :column)) children &key (newline t))
+  (ch-util::with-keyword-args ((width) children)
+      children
+    (emit-latex-command-2 stream "begin" :arg1 "column" :arg2 (format nil "~A\\textwidth" width) :newline newline)
+    (loop for c in children do (emit-latex stream c))
+    (emit-latex-command stream "end" '("column") :newline newline)))
+
+
