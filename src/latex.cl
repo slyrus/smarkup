@@ -38,6 +38,10 @@
 (defmethod emit-latex (stream (thing (eql :nbsp)) &key (newline nil))
   (emit-latex stream "~" :newline newline))
 
+(defmethod emit-latex (stream (thing (eql :hr)) &key (newline nil))
+  (declare (ignore newline))
+  (emit-latex-newline stream))
+
 (defmethod emit-latex (stream (thing (eql :qquad)) &key (newline nil))
   (emit-latex stream "\\qquad" :newline newline))
 
@@ -223,7 +227,7 @@
         (t *article-headings*)))
 
 (defun setup-headings ()
-  (if (equal *document-class* "ucthesis")
+  (if (member *document-class* '("ucthesis" "beamer") :test #'equal)
       (setf *document-options* "11pt")
       (setf *document-options* "10pt")))
 
@@ -280,7 +284,12 @@
   (emit-latex-command stream "cite" (format nil "~{~A~^, ~}" children) :newline newline))
 
 (defmethod emit-latex-gf (stream (type (eql :caption)) children &key (newline nil))
-  (emit-latex-command stream "caption" children :newline newline))
+  (ch-util::with-keyword-args (((figure-label t)) children)
+      children
+    (let ((label (if figure-label
+                     "caption"
+                     "caption*")))
+      (emit-latex-command stream label children :newline newline))))
 
 (defmethod emit-latex-gf (stream (type (eql :label)) children &key (newline nil))
   (emit-latex-command stream "label" children :newline newline))
@@ -347,7 +356,7 @@
 
 
 
-(defparameter *latex-packages*
+(defvar *latex-packages*
   '("amssymb" "amsmath" "verbatim" "graphicx" "subfigure" "hyperref" "fancyheadings" "longtable"
     ("geometry" . "letterpaper")))
 ;;; "scicite" "pslatex" "times" "epsfig" "graphs" "newcent"
@@ -355,7 +364,7 @@
 (defun include-contents-of-file-file (stream file)
   (emit-latex stream (ch-util::contents-of-file file)))
 
-(defparameter *document-format-parameters*
+(defvar *document-format-parameters*
   '(("oddsidemargin" . "0.5in")
     ("textwidth" . "6.0in")
     ("topmargin" . "0in")
@@ -365,12 +374,12 @@
     ("footskip" . "0.4in")
     ("parindent" . "0.5in")))
 
-(defparameter *section-numbering-depth* 5)
+(defvar *section-numbering-depth* 5)
 
-(defparameter *document-class* "article")
-(defparameter *document-options* "10pt")
+(defvar *document-class* "article")
+(defvar *document-options* "10pt")
 
-(defparameter *document-latex-commands*
+(defvar *document-latex-commands*
   '("\\newcommand{\\argmax}{\\operatornamewithlimits{argmax}}"
     "\\newcommand{\\argmin}{\\operatornamewithlimits{argmin}}"))
 
@@ -383,6 +392,13 @@
      do (emit-latex-parameter stream param val))
   (dolist (command *document-latex-commands*)
     (emit-latex stream command)))
+
+(defparameter *beamer-preamble*
+  "\\mode<presentation>{
+\\definecolor{nicegreen}{RGB}{10,100,10}
+\\setbeamercolor*{normal text}{bg=black,fg=white}
+\\setbeamercolor{structure}{fg=nicegreen}
+}")
 
 (defun latex-document (stream sexp &key (options *document-options*) (class *document-class*))
   (emit-latex-command-2 stream "documentclass"
@@ -423,7 +439,7 @@
                      (format nil
                              "\\def\\dsp{\\def\\baselinestretch{~A}\\large\\normalsize}"
                              *baseline-stretch*)
-                     :newline t)
+                     :slinewline t)
          (emit-latex stream "\\dsp" :newline t)
         
          (emit-latex stream "\\addtolength{\\headheight}{\\baselineskip}" :newline t)
@@ -438,7 +454,8 @@
          (emit-latex stream "\\hyphenpenalty=1000" :newline t)
          (emit-latex stream "\\clubpenalty=500" :newline t)
          (emit-latex stream "\\widowpenalty=500" :newline t))
-        ((equal *document-class* "beamer"))
+        ((equal *document-class* "beamer")
+         (princ *beamer-preamble* stream))
         (t
          (emit-latex stream "\\geometry{verbose,tmargin=1in,bmargin=1in,lmargin=1in,rmargin=1in}" :newline t)))
   
@@ -642,7 +659,7 @@
 ;;;
 ;;;
 ;;; beamer stuff
-(defmethod emit-latex-gf (stream (type (eql :slide)) children &key (newline t))
+(defmethod emit-latex-gf (stream (type (eql :slide-title)) children &key (newline t))
   (ch-util::with-keyword-args ((title) children)
       children
     (emit-latex-command-2 stream "frame")
@@ -661,3 +678,12 @@
   (declare (ignore newline))
   (emit-latex-command-2 stream "tableofcontents"))
 
+(defmethod emit-latex-gf (stream (type (eql :list)) children &key (newline t))
+  (emit-latex-command stream "begin" '("itemize") :newline newline)
+  (loop for c in children do (emit-latex stream c))
+  (emit-latex-command stream "end" '("itemize") :newline newline))
+
+(defmethod emit-latex-gf (stream (type (eql :item)) children &key (newline t))
+  (declare (ignore newline))
+  (emit-latex-command-2 stream "item")
+  (loop for c in children do (emit-latex stream c)))
