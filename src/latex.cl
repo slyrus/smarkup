@@ -285,6 +285,8 @@
 (defmethod emit-latex-gf (stream (type (eql :h4)) children &key (newline t))
   (emit-latex-header stream type children :newline newline))
 
+(defmethod emit-latex-gf (stream (type (eql :part)) children &key (newline nil))
+  (emit-latex-command stream "part" (format nil "~{~A~^, ~}" children) :newline newline))
 
 (defmethod emit-latex-gf (stream (type (eql :bibcite)) children &key (newline nil))
   (emit-latex-command stream "cite" (format nil "~{~A~^, ~}" children) :newline newline))
