@@ -42,6 +42,9 @@
   (declare (ignore newline))
   (emit-latex-newline stream))
 
+(defmethod emit-latex (stream (thing (eql :pause)) &key (newline nil))
+  (emit-latex stream "\\pause" :newline newline))
+
 (defmethod emit-latex (stream (thing (eql :qquad)) &key (newline nil))
   (emit-latex stream "\\qquad" :newline newline))
 
@@ -106,6 +109,9 @@
           options)
   (loop for c in children do (emit-latex stream c))
   (format stream "}~:[~;~%~]" newline))
+
+(defun emit-latex-command-5 (stream command &key options arg1 arg2 (newline t))
+  (format stream "~&\\~A~@[[~A]~]~@[{~A}~]~@[[~A]~]~:[~;~%~]" command options arg1 arg2 newline))
 
 (defun emit-latex-parameter (stream command children &key (newline t))
   (format stream "~&\\~A~@[ ~A~]~:[~;~%~]"
@@ -465,8 +471,9 @@
   (emit-latex-command stream "begin" "document")
   (emit-latex-freshline stream)
 
-  (emit-latex stream "\\maketitle" :newline t)
-
+  (unless (equal *document-class* "beamer")
+    (emit-latex stream "\\maketitle" :newline t))
+  
   (emit-latex stream "\\let\\mypdfximage\\pdfximage" :newline t)
   (emit-latex stream "\\def\\pdfximage{\\immediate\\mypdfximage}" :newline t)
   
@@ -706,13 +713,15 @@
 
 (defmethod emit-latex-gf (stream (type (eql :item)) children &key (newline t))
   (declare (ignore newline))
-  (emit-latex-command-2 stream "item")
+  (emit-latex-command-2 stream "item " :newline nil)
   (loop for c in children do (emit-latex stream c)))
 
 (defmethod emit-latex-gf (stream (type (eql :columns)) children &key (newline t))
-  (emit-latex-command stream "begin" '("columns") :newline newline)
-  (loop for c in children do (emit-latex stream c))
-  (emit-latex-command stream "end" '("columns") :newline newline))
+  (ch-util::with-keyword-args ((format) children)
+      children
+    (emit-latex-command-5 stream "begin" :arg1 "columns" :arg2 format :newline newline)
+    (loop for c in children do (emit-latex stream c))
+    (emit-latex-command stream "end" '("columns") :newline newline)))
 
 (defmethod emit-latex-gf (stream (type (eql :column)) children &key (newline t))
   (ch-util::with-keyword-args ((width) children)
