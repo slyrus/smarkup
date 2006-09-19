@@ -6,10 +6,10 @@
 
 (in-package :smarkup)
 
-(defparameter *baseline-skip* "10pt")
-(defparameter *baseline-stretch* "1.6")
-(defparameter *par-skip* "18pt")
-(defparameter *latex-graphics-params* nil)
+(defvar *baseline-skip* "10pt")
+(defvar *baseline-stretch* "1.6")
+(defvar *par-skip* "18pt")
+(defvar *latex-graphics-params* nil)
 
 (defun latex-command (command &optional arg)
   (format nil "~&\\~A~@[{~A}~]~%" command arg))
@@ -154,7 +154,7 @@
 (defmethod emit-latex-gf (stream (type (eql :sc)) children &key newline)
   (emit-latex-block "sc" stream children :newline newline))
 
-(defparameter *document-single-space-count* 0)
+(defvar *document-single-space-count* 0)
 
 (defun single-space (stream)
   (cond ((equal *document-class* "ucthesis")
@@ -190,12 +190,14 @@
   (destructuring-bind (&key name (parameters " "))
       (car children)
     (single-space stream)
+    (emit-latex stream "{\\scriptsize")
     (emit-latex-command-3 stream "begin" "pseudocode" :options "framebox" :arg1 name :arg2 parameters :newline nil)
     (format stream "~{~A~}~:[~;~%~]"
             (loop for c in (cdr children)
                collect (emit-latex nil c))
             newline)
     (emit-latex-command stream "end" "pseudocode" :newline newline)
+    (emit-latex stream "}" :newline t)
     (default-space stream)))
 
 (defmethod emit-latex-gf (stream (type (eql :soutput)) children &key (newline))
@@ -217,12 +219,12 @@
 (defmethod emit-latex-gf (stream (type (eql :clearpage)) children &key (newline t))
   (emit-latex-command stream "clearpage" nil :newline t))
 
-(defparameter *article-headings* '((:h1 . "section")
+(defvar *article-headings* '((:h1 . "section")
                                    (:h2 . "subsection")
                                    (:h3 . "subsubsection")
                                    (:h4 . "paragraph")))
 
-(defparameter *thesis-headings* '((:h1 . "chapter")
+(defvar *thesis-headings* '((:h1 . "chapter")
                                   (:h2 . "section")
                                   (:h3 . "subsection")
                                   (:h4 . "subsubsection")))
@@ -232,10 +234,12 @@
          *thesis-headings*)
         (t *article-headings*)))
 
+(defvar *default-font-size* "10pt")
+
 (defun setup-headings ()
   (if (member *document-class* '("ucthesis" "beamer") :test #'equal)
       (setf *document-options* "11pt")
-      (setf *document-options* "10pt")))
+      (setf *document-options* *default-font-size*)))
 
 (defmethod emit-latex-gf (stream (type (eql :appendices)) children &key (newline t))
   (declare (ignore newline))
@@ -249,7 +253,7 @@
   (ch-util::with-keyword-args ((label (clearpage t) no-number) children)
       children
     (declare (ignore no-number))
-    (when clearpage
+    (when (and clearpage (not (eql clearpage :nil)))
       (emit-latex-command stream "clearpage" nil :newline t))
     (when (equal *document-class* "ucthesis")
       (emit-latex stream "\\pagestyle{fancyplain}" :newline t)
@@ -263,7 +267,7 @@
 (defmethod emit-latex-header (stream type children &key (newline t))
   (ch-util::with-keyword-args ((label clearpage no-number) children)
       children
-    (when clearpage
+    (when (and clearpage (not (eql clearpage :nil)))
       (emit-latex-command stream "clearpage" nil :newline t))
     (single-space stream)
     (emit-latex-command stream (cdr (assoc type (get-headings)))
@@ -401,7 +405,7 @@
   (dolist (command *document-latex-commands*)
     (emit-latex stream command)))
 
-(defparameter *beamer-preamble*
+(defvar *beamer-preamble*
   "\\mode<presentation>{
 \\definecolor{nicegreen}{RGB}{10,100,10}
 \\setbeamercolor*{normal text}{bg=black,fg=white}
@@ -419,7 +423,8 @@
 
   (when *document-title*
     (emit-latex-command stream "title" (list *document-title*)))
-  (when *document-subtitle*
+  (when (and *document-subtitle*
+             (equal *document-class* "beamer"))
     (emit-latex-command stream "subtitle" (list *document-subtitle*)))
   (when *document-author*
     (emit-latex-command stream "author" (list *document-author*)))
