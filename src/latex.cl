@@ -45,6 +45,9 @@
 (defmethod emit-latex (stream (thing (eql :pause)) &key (newline nil))
   (emit-latex stream "\\pause" :newline newline))
 
+(defmethod emit-latex (stream (thing (eql :hfill)) &key (newline nil))
+  (emit-latex stream "\\hfill" :newline newline))
+
 (defmethod emit-latex (stream (thing (eql :qquad)) &key (newline nil))
   (emit-latex stream "\\qquad" :newline newline))
 
@@ -110,8 +113,14 @@
   (loop for c in children do (emit-latex stream c))
   (format stream "}~:[~;~%~]" newline))
 
-(defun emit-latex-command-5 (stream command &key options arg1 arg2 (newline t))
-  (format stream "~&\\~A~@[[~A]~]~@[{~A}~]~@[[~A]~]~:[~;~%~]" command options arg1 arg2 newline))
+;;;
+;;; takes options command, options, arg1, arg2 and arg3, e.g.:
+;;; (emit-latex-command-5 nil "command" :options "options" :arg1 "arg1" :arg2 "arg2")
+;;; produces "\\command[options]{arg1}[arg2]{arg3}"
+;;;
+(defun emit-latex-command-5 (stream command &key options arg1 arg2 arg3 (newline t))
+  (format stream "~&\\~A~@[[~A]~]~@[{~A}~]~@[[~A]~]~@[{~A}~]~:[~;~%~]"
+          command options arg1 arg2 arg3 newline))
 
 (defun emit-latex-parameter (stream command children &key (newline t))
   (format stream "~&\\~A~@[ ~A~]~:[~;~%~]"
@@ -190,14 +199,16 @@
   (destructuring-bind (&key name (parameters " "))
       (car children)
     (single-space stream)
-    (emit-latex stream "{\\scriptsize")
+    (when (equal *document-class* "beamer")
+      (emit-latex stream "{\\scriptsize"))
     (emit-latex-command-3 stream "begin" "pseudocode" :options "framebox" :arg1 name :arg2 parameters :newline nil)
     (format stream "~{~A~}~:[~;~%~]"
             (loop for c in (cdr children)
                collect (emit-latex nil c))
             newline)
     (emit-latex-command stream "end" "pseudocode" :newline newline)
-    (emit-latex stream "}" :newline t)
+    (when (equal *document-class* "beamer")
+      (emit-latex stream "}" :newline t))
     (default-space stream)))
 
 (defmethod emit-latex-gf (stream (type (eql :soutput)) children &key (newline))
@@ -238,8 +249,8 @@
 
 (defun setup-headings ()
   (if (member *document-class* '("ucthesis" "beamer") :test #'equal)
-      (setf *document-options* "11pt")
-      (setf *document-options* *default-font-size*)))
+      (setf *document-options* '("11pt"))
+      (setf *document-options* `(,*default-font-size*))))
 
 (defmethod emit-latex-gf (stream (type (eql :appendices)) children &key (newline t))
   (declare (ignore newline))
@@ -253,13 +264,17 @@
   (ch-util::with-keyword-args ((label (clearpage t) no-number) children)
       children
     (declare (ignore no-number))
-    (when (and clearpage (not (eql clearpage :nil)))
-      (emit-latex-command stream "clearpage" nil :newline t))
+    (if (and clearpage (not (eql clearpage :nil)))
+        (emit-latex-command stream "clearpage" nil :newline t)
+        (when (equal *document-class* "article")
+          (emit-latex-command stream "vspace" '("-18pt"))))
     (when (equal *document-class* "ucthesis")
       (emit-latex stream "\\pagestyle{fancyplain}" :newline t)
       (emit-latex stream "\\cfoot{}" :newline t))
     (emit-latex-command stream (cdr (assoc type (get-headings)))
                         children :newline newline)
+    (when (equal *document-class* "article")
+      (emit-latex-command stream "vspace" '("-14pt")))
     (when label
       (emit-latex-command stream "label" label :newline newline))))
 
@@ -277,17 +292,29 @@
     (default-space stream)))
 
 (defmethod emit-latex-gf (stream (type (eql :h2)) children &key (newline t))
+  (when (equal *document-class* "article")
+    (emit-latex-command stream "vspace" '("-14pt")))
   (emit-latex-header stream type children :newline newline)
+  (when (equal *document-class* "article")
+    (emit-latex-command stream "vspace" '("-14pt")))
   #+nil (ch-util::with-keyword-args ((label) children)
             children
           (when label
             (emit-latex-command stream 'label label :newline newline))))
 
 (defmethod emit-latex-gf (stream (type (eql :h3)) children &key (newline t))
-  (emit-latex-header stream type children :newline newline))
+  (when (equal *document-class* "article")
+    (emit-latex-command stream "vspace" '("-14pt")))
+  (emit-latex-header stream type children :newline newline)
+  (when (equal *document-class* "article")
+    (emit-latex-command stream "vspace" '("-14pt"))))
 
 (defmethod emit-latex-gf (stream (type (eql :h4)) children &key (newline t))
-  (emit-latex-header stream type children :newline newline))
+  (when (equal *document-class* "article")
+    (emit-latex-command stream "vspace" '("-14pt")))
+  (emit-latex-header stream type children :newline newline)
+  (when (equal *document-class* "article")
+    (emit-latex-command stream "vspace" '("-14pt"))))
 
 (defmethod emit-latex-gf (stream (type (eql :part)) children &key (newline nil))
   (emit-latex-command stream "part" (format nil "~{~A~^, ~}" children) :newline newline))
@@ -389,7 +416,7 @@
 (defvar *section-numbering-depth* 5)
 
 (defvar *document-class* "article")
-(defvar *document-options* "10pt")
+(defvar *document-options* '("10pt"))
 
 (defvar *document-latex-commands*
   '("\\newcommand{\\argmax}{\\operatornamewithlimits{argmax}}"
@@ -415,7 +442,7 @@
 
 (defun latex-document (stream sexp &key (options *document-options*) (class *document-class*))
   (emit-latex-command-2 stream "documentclass"
-                        :options options :arg1 class :newline t)
+                        :options (format nil "~{~A~^,~}" options) :arg1 class :newline t)
   (emit-latex-command-2 stream "setcounter"
                         :arg1 "secnumdepth"
                         :arg2 *section-numbering-depth* :newline t)
@@ -723,6 +750,7 @@
   (emit-latex-command-2 stream "item " :newline nil)
   (loop for c in children do (emit-latex stream c)))
 
+;;; columns for beamer
 (defmethod emit-latex-gf (stream (type (eql :columns)) children &key (newline t))
   (ch-util::with-keyword-args ((format) children)
       children
@@ -737,4 +765,14 @@
     (loop for c in children do (emit-latex stream c))
     (emit-latex-command stream "end" '("column") :newline newline)))
 
+;;; minipage (for use with captions)
+
+
+(defmethod emit-latex-gf (stream (type (eql :minipage)) children &key (newline t))
+  (ch-util::with-keyword-args (((width "0.5" )) children)
+      children
+    (emit-latex-command-5 stream "begin" :arg1 "minipage" :arg2 "t"
+                          :arg3 (format nil "~A\\linewidth" width) :newline newline)
+    (loop for c in children do (emit-latex stream c))
+    (emit-latex-command stream "end" '("minipage") :newline newline)))
 
