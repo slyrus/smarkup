@@ -406,7 +406,7 @@
 (defun include-contents-of-file-file (stream file)
   (emit-latex stream (ch-util::contents-of-file file)))
 
-(defvar *document-format-parameters*
+(defparameter *document-format-parameters*
   '(("oddsidemargin" . "0.5in")
     ("textwidth" . "6.0in")
     ("topmargin" . "0in")
@@ -414,7 +414,7 @@
     ("headsep" . "0.0in")
     ("textheight" . "9.6in")
     ("footskip" . "0.4in")
-    ("parindent" . "0.5in")))
+    #+nil ("parindent" . "0.5in")))
 
 (defvar *section-numbering-depth* 5)
 

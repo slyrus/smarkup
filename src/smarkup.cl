@@ -100,6 +100,7 @@
                              (start 0)
                              (end (1- (length image-sequence)))
                              (images-per-line *images-per-line*)
+                             increment-counter
                              (width "1in"))
   (when (some #'identity image-sequence)
     (append
@@ -114,5 +115,7 @@
                (let ((img (elt image-sequeNce j)))
                  `(:image ,(namestring img)
                           :width ,width)))
-            (when (and caption (> (+ i images-per-line) end))
-              `(:caption ,caption))))))))
+            (if (and caption (> (+ i images-per-line) end))
+                `(:caption ,caption)
+                (unless increment-counter
+                  `(:increment-counter nil)))))))))
