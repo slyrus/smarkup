@@ -6,6 +6,7 @@
 (defparameter *document-title* nil)
 (defparameter *document-subtitle* nil)
 (defparameter *document-author* nil)
+(defparameter *document-address* nil)
 (defparameter *document-date* nil)
 (defparameter *document-css-stylesheet* nil)
 

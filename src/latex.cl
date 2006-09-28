@@ -195,7 +195,7 @@
           (loop for c in children collect (emit-latex nil c))
           newline))
 
-(defmethod emit-latex-gf (stream (type (eql :pseudocode)) children &key (newline))
+(defmethod emit-latex-gf (stream (type (eql :pseudocode)) children &key (newline t))
   (destructuring-bind (&key name (parameters " "))
       (car children)
     (single-space stream)
@@ -209,6 +209,7 @@
     (emit-latex-command stream "end" "pseudocode" :newline newline)
     (when (equal *document-class* "beamer")
       (emit-latex stream "}" :newline t))
+    (emit-latex-newline stream)
     (default-space stream)))
 
 (defmethod emit-latex-gf (stream (type (eql :soutput)) children &key (newline))
@@ -263,17 +264,18 @@
 (defmethod emit-latex-gf (stream (type (eql :h1)) children &key (newline t))
   (ch-util::with-keyword-args ((label (clearpage t) no-number) children)
       children
-    (declare (ignore no-number))
     (if (and clearpage (not (eql clearpage :nil)))
         (emit-latex-command stream "clearpage" nil :newline t)
-        (when (equal *document-class* "article")
-          (emit-latex-command stream "vspace" '("-18pt"))))
+        #+nil (when (equal *document-class* "article")
+                (emit-latex-command stream "vspace" '("-18pt"))))
     (when (equal *document-class* "ucthesis")
       (emit-latex stream "\\pagestyle{fancyplain}" :newline t)
       (emit-latex stream "\\cfoot{}" :newline t))
-    (emit-latex-command stream (cdr (assoc type (get-headings)))
+    (emit-latex-command stream (format nil "~A~:[~;*~]"
+                                       (cdr (assoc type (get-headings)))
+                                       no-number)
                         children :newline newline)
-    (when (equal *document-class* "article")
+    #+nil (when (equal *document-class* "article")
       (emit-latex-command stream "vspace" '("-14pt")))
     (when label
       (emit-latex-command stream "label" label :newline newline))))
@@ -292,10 +294,10 @@
     (default-space stream)))
 
 (defmethod emit-latex-gf (stream (type (eql :h2)) children &key (newline t))
-  (when (equal *document-class* "article")
+  #+nil (when (equal *document-class* "article")
     (emit-latex-command stream "vspace" '("-14pt")))
   (emit-latex-header stream type children :newline newline)
-  (when (equal *document-class* "article")
+  #+nil (when (equal *document-class* "article")
     (emit-latex-command stream "vspace" '("-14pt")))
   #+nil (ch-util::with-keyword-args ((label) children)
             children
@@ -303,24 +305,24 @@
             (emit-latex-command stream 'label label :newline newline))))
 
 (defmethod emit-latex-gf (stream (type (eql :h3)) children &key (newline t))
-  (when (equal *document-class* "article")
+  #+nil (when (equal *document-class* "article")
     (emit-latex-command stream "vspace" '("-14pt")))
   (emit-latex-header stream type children :newline newline)
-  (when (equal *document-class* "article")
+  #+nil (when (equal *document-class* "article")
     (emit-latex-command stream "vspace" '("-14pt"))))
 
 (defmethod emit-latex-gf (stream (type (eql :h4)) children &key (newline t))
-  (when (equal *document-class* "article")
-    (emit-latex-command stream "vspace" '("-14pt")))
+  #+nil (when (equal *document-class* "article")
+          (emit-latex-command stream "vspace" '("-14pt")))
   (emit-latex-header stream type children :newline newline)
-  (when (equal *document-class* "article")
+  #+nil (when (equal *document-class* "article")
     (emit-latex-command stream "vspace" '("-14pt"))))
 
 (defmethod emit-latex-gf (stream (type (eql :part)) children &key (newline nil))
   (emit-latex-command stream "part" (format nil "~{~A~^, ~}" children) :newline newline))
 
 (defmethod emit-latex-gf (stream (type (eql :bibcite)) children &key (newline nil))
-  (emit-latex-command stream "cite" (format nil "~{~A~^, ~}" children) :newline newline))
+  (emit-latex-command stream "cite" (format nil "~{~A~^, ~}" children) :initial-freshline nil :newline newline))
 
 (defmethod emit-latex-gf (stream (type (eql :caption)) children &key (newline nil))
   (ch-util::with-keyword-args (((figure-label t)) children)
@@ -390,13 +392,14 @@
     (dolist (p (remove-from-plist rest :clearpage))
       (emit-latex stream p :newline nil))
     (when (string-equal element "abstract")
-      (emit-latex-command stream "abstractsignature" nil))
+      (when (equal *document-class* "ucthesis")
+        (emit-latex-command stream "abstractsignature" nil)))
     (emit-latex-command stream "end" element)))
 
 
 
 (defvar *latex-packages*
-  '("amssymb" "amsmath" "verbatim" "graphicx" "subfigure" "hyperref" "fancyheadings" "longtable"
+  '("amssymb" "amsmath" "verbatim" "graphicx" "subfigure" "caption" "hyperref" "fancyheadings" "longtable"
     ("geometry" . "letterpaper")))
 ;;; "scicite" "pslatex" "times" "epsfig" "graphs" "newcent"
    
@@ -432,13 +435,26 @@
   (dolist (command *document-latex-commands*)
     (emit-latex stream command)))
 
-(defvar *beamer-preamble*
+(defparameter *beamer-preamble*
   "\\mode<presentation>{
 \\definecolor{nicegreen}{RGB}{10,100,10}
 \\setbeamercolor*{normal text}{bg=black,fg=white}
 \\setbeamercolor{structure}{fg=nicegreen}
 }
 ")
+
+(defparameter *article-preamble*
+  "\\setcounter{topnumber}{2}
+\\setcounter{bottomnumber}{2}
+\\setcounter{totalnumber}{4}     % 2 may work better
+\\setcounter{dbltopnumber}{2}    % for 2-column pages
+\\renewcommand{\\dbltopfraction}{0.9}	% fit big float above 2-col. text
+\\renewcommand{\\textfraction}{0.07}	% allow minimal text w. figs
+%   Parameters for FLOAT pages (not text pages):
+\\renewcommand{\\floatpagefraction}{0.7}	% require fuller float pages
+% N.B.: floatpagefraction MUST be less than topfraction !!
+\\renewcommand{\\dblfloatpagefraction}{0.7}	% require fuller float pages
+\\setlength{\\captionmargin}{10pt}")
 
 (defun latex-document (stream sexp &key (options *document-options*) (class *document-class*))
   (emit-latex-command-2 stream "documentclass"
@@ -455,6 +471,8 @@
     (emit-latex-command stream "subtitle" (list *document-subtitle*)))
   (when *document-author*
     (emit-latex-command stream "author" (list *document-author*)))
+  (when *document-address*
+    (emit-latex-command stream "address" (list *document-address*)))
   (when *document-date*
     (emit-latex-command stream "date" (list *document-date*)))
   (when (equal *document-class* "ucthesis")
@@ -500,13 +518,15 @@
         ((equal *document-class* "beamer")
          (princ *beamer-preamble* stream))
         (t
+         (princ *article-preamble* stream)
          (emit-latex stream "\\geometry{verbose,tmargin=1in,bmargin=1in,lmargin=1in,rmargin=1in}" :newline t)))
   
   (emit-latex-command stream "begin" "document")
   (emit-latex-freshline stream)
 
-  (unless (equal *document-class* "beamer")
-    (emit-latex stream "\\maketitle" :newline t))
+  (cond ((equal *document-class* "beamer"))
+        (t
+         (emit-latex stream "\\maketitle" :newline t)))
   
   (emit-latex stream "\\let\\mypdfximage\\pdfximage" :newline t)
   (emit-latex stream "\\def\\pdfximage{\\immediate\\mypdfximage}" :newline t)

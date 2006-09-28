@@ -127,6 +127,10 @@
   (setf *document-author* (cadr list))
   (call-next-method))
 
+(defmethod filter-gf ((filter (eql :smarkup-metadata)) (car (eql :address)) list)
+  (setf *document-address* (cadr list))
+  (call-next-method))
+
 (defparameter *bibtex-macros* (make-hash-table :test #'equalp))
 (defparameter *bibtex-database* (make-hash-table :test #'equalp))
 (defparameter *bibtex-style* nil)
