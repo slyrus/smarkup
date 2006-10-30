@@ -122,6 +122,18 @@
   (format stream "~&\\~A~@[[~A]~]~@[{~A}~]~@[[~A]~]~@[{~A}~]~:[~;~%~]"
           command options arg1 arg2 arg3 newline))
 
+(defun emit-latex-command-6 (stream command children
+                           &key
+                           (newline t)
+                           (initial-freshline t)
+                           (arg))
+  (format stream "~:[~;~&~]\\~A~@[{~A}~]{"
+          initial-freshline
+          command
+          arg)
+  (loop for c in children do (emit-latex stream c))
+  (format stream "}~:[~;~%~]" newline))
+
 (defun emit-latex-parameter (stream command children &key (newline t))
   (format stream "~&\\~A~@[ ~A~]~:[~;~%~]"
           command
@@ -344,7 +356,7 @@
   (emit-latex stream "~"))
 
 (defmethod emit-latex-gf (stream (type (eql :centering)) children &key (newline nil))
-  (emit-latex-command stream "centering" children :newline newline))
+  (emit-latex-command-6 stream "centering" children :newline newline))
 
 (defmethod emit-latex-gf (stream (type (eql :image)) children &key (newline t))
   (destructuring-bind (image-pathname &key
@@ -741,12 +753,12 @@
 ;;;
 ;;;
 ;;; beamer stuff
-(defmethod emit-latex-gf (stream (type (eql :slide-title)) children &key (newline t))
-  (ch-util::with-keyword-args ((title) children)
+(defmethod emit-latex-gf (stream (type (eql :slide)) children &key (newline t))
+  (ch-util::with-keyword-args ((slide-title) children)
       children
     (emit-latex-command-2 stream "frame")
     (format stream "{")
-    (when title (emit-latex-command-2 stream "frametitle" :arg1 title))
+    (when slide-title (emit-latex-command-2 stream "frametitle" :arg1 slide-title))
     (loop for c in children do (emit-latex stream c))
     (format stream "}")
     (when newline
@@ -770,6 +782,11 @@
   (emit-latex-command-2 stream "item " :newline nil)
   (loop for c in children do (emit-latex stream c)))
 
+(defmethod emit-latex-gf (stream (type (eql :colorbox)) children &key (newline nil))
+  (ch-util::with-keyword-args (((color "white")) children)
+      children
+    (emit-latex-command-6 stream "colorbox" children :arg color :newline newline)))
+
 ;;; columns for beamer
 (defmethod emit-latex-gf (stream (type (eql :columns)) children &key (newline t))
   (ch-util::with-keyword-args ((format) children)
@@ -789,7 +806,7 @@
 
 
 (defmethod emit-latex-gf (stream (type (eql :minipage)) children &key (newline t))
-  (ch-util::with-keyword-args (((width "0.5" )) children)
+  (ch-util::with-keyword-args (((width "0.5")) children)
       children
     (emit-latex-command-5 stream "begin" :arg1 "minipage" :arg2 "t"
                           :arg3 (format nil "~A\\linewidth" width) :newline newline)
