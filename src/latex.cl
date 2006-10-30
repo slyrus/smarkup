@@ -261,9 +261,13 @@
 (defvar *default-font-size* "10pt")
 
 (defun setup-headings ()
-  (if (member *document-class* '("ucthesis" "beamer") :test #'equal)
-      (setf *document-options* '("11pt"))
-      (setf *document-options* `(,*default-font-size*))))
+  (cond ((member *document-class* '("ucthesis") :test #'equal)
+         (setf *document-options* '("11pt")))
+        ((member *document-class* '("beamer") :test #'equal)
+         (setf *document-options* '("10pt")))
+        ((member *document-class* '("res") :test #'equal)
+         (setf *document-options* '("margin" "line")))
+        (t (setf *document-options* `(,*default-font-size*)))))
 
 (defmethod emit-latex-gf (stream (type (eql :appendices)) children &key (newline t))
   (declare (ignore newline))
@@ -278,8 +282,8 @@
       children
     (if (and clearpage (not (eql clearpage :nil)))
         (emit-latex-command stream "clearpage" nil :newline t)
-        #+nil (when (equal *document-class* "article")
-                (emit-latex-command stream "vspace" '("-18pt"))))
+        (when (equal *document-class* "article")
+          (emit-latex-command stream "vspace" '("-10pt"))))
     (when (equal *document-class* "ucthesis")
       (emit-latex stream "\\pagestyle{fancyplain}" :newline t)
       (emit-latex stream "\\cfoot{}" :newline t))
@@ -287,8 +291,8 @@
                                        (cdr (assoc type (get-headings)))
                                        no-number)
                         children :newline newline)
-    #+nil (when (equal *document-class* "article")
-      (emit-latex-command stream "vspace" '("-14pt")))
+    (when (equal *document-class* "article")
+      (emit-latex-command stream "vspace" '("-6pt")))
     (when label
       (emit-latex-command stream "label" label :newline newline))))
 
@@ -306,11 +310,11 @@
     (default-space stream)))
 
 (defmethod emit-latex-gf (stream (type (eql :h2)) children &key (newline t))
-  #+nil (when (equal *document-class* "article")
-    (emit-latex-command stream "vspace" '("-14pt")))
+  (when (equal *document-class* "article")
+    (emit-latex-command stream "vspace" '("-5pt")))
   (emit-latex-header stream type children :newline newline)
-  #+nil (when (equal *document-class* "article")
-    (emit-latex-command stream "vspace" '("-14pt")))
+  (when (equal *document-class* "article")
+    (emit-latex-command stream "vspace" '("-3pt")))
   #+nil (ch-util::with-keyword-args ((label) children)
             children
           (when label
@@ -320,15 +324,15 @@
   #+nil (when (equal *document-class* "article")
     (emit-latex-command stream "vspace" '("-14pt")))
   (emit-latex-header stream type children :newline newline)
-  #+nil (when (equal *document-class* "article")
-    (emit-latex-command stream "vspace" '("-14pt"))))
+  (when (equal *document-class* "article")
+    (emit-latex-command stream "vspace" '("-2pt"))))
 
 (defmethod emit-latex-gf (stream (type (eql :h4)) children &key (newline t))
   #+nil (when (equal *document-class* "article")
           (emit-latex-command stream "vspace" '("-14pt")))
   (emit-latex-header stream type children :newline newline)
-  #+nil (when (equal *document-class* "article")
-    (emit-latex-command stream "vspace" '("-14pt"))))
+  (when (equal *document-class* "article")
+    (emit-latex-command stream "vspace" '("-3pt"))))
 
 (defmethod emit-latex-gf (stream (type (eql :part)) children &key (newline nil))
   (emit-latex-command stream "part" (format nil "~{~A~^, ~}" children) :newline newline))
@@ -410,8 +414,9 @@
 
 
 
-(defvar *latex-packages*
-  '("amssymb" "amsmath" "verbatim" "graphicx" "subfigure" "caption" "hyperref" "fancyheadings" "longtable"
+(defparameter *latex-packages*
+  '("amssymb" "amsmath" "verbatim" "graphicx" "subfigure"
+    "caption" "hyperref" "fancyheadings" "longtable"
     ("geometry" . "letterpaper")))
 ;;; "scicite" "pslatex" "times" "epsfig" "graphs" "newcent"
    
@@ -447,6 +452,10 @@
   (dolist (command *document-latex-commands*)
     (emit-latex stream command)))
 
+(defparameter *thesis-preamble*
+  "\\DeclareCaptionFont{singlespacing}{\\ssp}
+\\captionsetup{font={singlespacing,small}}")
+
 (defparameter *beamer-preamble*
   "\\mode<presentation>{
 \\definecolor{nicegreen}{RGB}{10,100,10}
@@ -454,6 +463,26 @@
 \\setbeamercolor{structure}{fg=nicegreen}
 }
 ")
+
+(defparameter *res-preamble* "
+\\oddsidemargin -.5in
+\\evensidemargin -.5in
+\\textwidth=6.0in
+\\itemsep=0in
+\\parsep=0in
+
+\\newenvironment{list1}{
+  \\begin{list}{}{%
+      \\setlength{\\itemsep}{0in}
+      \\setlength{\\parsep}{0in} \\setlength{\\parskip}{0in}
+      \\setlength{\\topsep}{0in} \\setlength{\\partopsep}{0in} 
+      \\setlength{\\leftmargin}{0.17in}}}{\\end{list}}
+\\newenvironment{list2}{
+  \\begin{list}{$\\bullet$}{%
+      \\setlength{\\itemsep}{0in}
+      \\setlength{\\parsep}{0in} \\setlength{\\parskip}{0in}
+      \\setlength{\\topsep}{0in} \\setlength{\\partopsep}{0in} 
+      \\setlength{\\leftmargin}{0.2in}}}{\\end{list}}")
 
 (defparameter *article-preamble*
   "\\setcounter{topnumber}{2}
@@ -526,17 +555,21 @@
                 (emit-latex stream "\\rhead[\\fancyplain{}{}]{\\fancyplain{\\bfseries\\thepage}{\\bfseries\\thepage}}" :newline t))
          (emit-latex stream "\\hyphenpenalty=1000" :newline t)
          (emit-latex stream "\\clubpenalty=500" :newline t)
-         (emit-latex stream "\\widowpenalty=500" :newline t))
+         (emit-latex stream "\\widowpenalty=500" :newline t)
+         (princ *thesis-preamble* stream))
         ((equal *document-class* "beamer")
          (princ *beamer-preamble* stream))
+        ((equal *document-class* "res")
+         (princ *res-preamble* stream))
         (t
          (princ *article-preamble* stream)
          (emit-latex stream "\\geometry{verbose,tmargin=1in,bmargin=1in,lmargin=1in,rmargin=1in}" :newline t)))
   
   (emit-latex-command stream "begin" "document")
   (emit-latex-freshline stream)
-
+  
   (cond ((equal *document-class* "beamer"))
+        ((equal *document-class* "res"))
         (t
          (emit-latex stream "\\maketitle" :newline t)))
   
@@ -812,4 +845,42 @@
                           :arg3 (format nil "~A\\linewidth" width) :newline newline)
     (loop for c in children do (emit-latex stream c))
     (emit-latex-command stream "end" '("minipage") :newline newline)))
+
+
+;;; resume stuff
+
+(defmethod emit-latex-gf (stream (type (eql :name)) children &key (newline nil))
+  (emit-latex-command stream "name" children :newline newline))
+
+(defmethod emit-latex-gf (stream (type (eql :employer)) children &key (newline nil))
+  (emit-latex-command stream "employer" children :newline newline))
+
+(defmethod emit-latex-gf (stream (type (eql :position-title)) children &key (newline nil))
+  (emit-latex-command stream "title" children :newline newline))
+
+(defmethod emit-latex-gf (stream (type (eql :dates)) children &key (newline nil))
+  (emit-latex-command stream "dates" children :newline newline))
+
+(defmethod emit-latex-gf (stream (type (eql :location)) children &key (newline nil))
+  (emit-latex-command stream "location" children :newline newline))
+
+(defmethod emit-latex-gf (stream (type (eql :position)) children &key (newline t))
+  (emit-latex-command stream "begin" '("position") :newline newline)
+  (loop for c in children do (emit-latex stream c))
+  (emit-latex-command stream "end" '("position") :newline newline))
+
+(defmethod emit-latex-gf (stream (type (eql :resume)) children &key (newline t))
+  (emit-latex-command stream "begin" '("resume") :newline newline)
+  (loop for c in children do (emit-latex stream c))
+  (emit-latex-command stream "end" '("resume") :newline newline))
+
+(defmethod emit-latex-gf (stream (type (eql :list1)) children &key (newline t))
+  (emit-latex-command stream "begin" '("list1") :newline newline)
+  (loop for c in children do (emit-latex stream c))
+  (emit-latex-command stream "end" '("list1") :newline newline))
+
+(defmethod emit-latex-gf (stream (type (eql :list2)) children &key (newline t))
+  (emit-latex-command stream "begin" '("list2") :newline newline)
+  (loop for c in children do (emit-latex stream c))
+  (emit-latex-command stream "end" '("list2") :newline newline))
 
