@@ -11,6 +11,86 @@
 (defvar *par-skip* "18pt")
 (defvar *latex-graphics-params* nil)
 
+(defparameter *document-format-parameters*
+  '(("oddsidemargin" . "0.5in")
+    ("textwidth" . "6.0in")
+    ("topmargin" . "0in")
+    ("headheight" . "0.1in")
+    ("headsep" . "0.0in")
+    ("textheight" . "9.6in")
+    ("footskip" . "0.4in")
+    #+nil ("parindent" . "0.5in")))
+
+(defvar *section-numbering-depth* 5)
+
+(defvar *document-class* "article")
+(defvar *document-options* '("10pt"))
+
+(defvar *document-latex-commands*
+  '("\\newcommand{\\argmax}{\\operatornamewithlimits{argmax}}"
+    "\\newcommand{\\argmin}{\\operatornamewithlimits{argmin}}"))
+
+(defparameter *latex-packages*
+  '("amssymb" "amsmath" "verbatim" "graphicx" "subfigure"
+    "caption" "hyperref" "fancyheadings" "longtable"
+    ("geometry" . "letterpaper")))
+
+(defparameter *thesis-preamble*
+  "\\DeclareCaptionFont{singlespacing}{\\ssp}
+\\captionsetup{font={singlespacing,small}}")
+
+(defparameter *beamer-preamble*
+  "\\mode<presentation>{
+\\definecolor{nicegreen}{RGB}{10,100,10}
+\\setbeamercolor*{normal text}{bg=black,fg=white}
+\\setbeamercolor{structure}{fg=nicegreen}
+}
+\\captionsetup{font={singlespacing,small}}
+")
+
+(defparameter *res-preamble* "
+\\oddsidemargin -.5in
+\\evensidemargin -.5in
+\\textwidth=6.0in
+\\itemsep=0in
+\\parsep=0in
+
+\\newenvironment{list1}{
+  \\begin{list}{}{%
+      \\setlength{\\itemsep}{0in}
+      \\setlength{\\parsep}{0in} \\setlength{\\parskip}{0in}
+      \\setlength{\\topsep}{0in} \\setlength{\\partopsep}{0in} 
+      \\setlength{\\leftmargin}{0.17in}}}{\\end{list}}
+\\newenvironment{list2}{
+  \\begin{list}{$\\bullet$}{%
+      \\setlength{\\itemsep}{0in}
+      \\setlength{\\parsep}{0in} \\setlength{\\parskip}{0in}
+      \\setlength{\\topsep}{0in} \\setlength{\\partopsep}{0in} 
+      \\setlength{\\leftmargin}{0.2in}}}{\\end{list}}")
+
+(defparameter *article-preamble*
+  "\\setcounter{topnumber}{2}
+\\setcounter{bottomnumber}{2}
+\\setcounter{totalnumber}{4}     % 2 may work better
+\\setcounter{dbltopnumber}{2}    % for 2-column pages
+\\renewcommand{\\dbltopfraction}{0.9}	% fit big float above 2-col. text
+\\renewcommand{\\textfraction}{0.07}	% allow minimal text w. figs
+%   Parameters for FLOAT pages (not text pages):
+\\renewcommand{\\floatpagefraction}{0.7}	% require fuller float pages
+% N.B.: floatpagefraction MUST be less than topfraction !!
+\\renewcommand{\\dblfloatpagefraction}{0.7}	% require fuller float pages
+\\setlength{\\captionmargin}{10pt}")
+
+(defvar *article-headings* '((:h1 . "section")
+                                   (:h2 . "subsection")
+                                   (:h3 . "subsubsection")
+                                   (:h4 . "paragraph")))
+
+(defvar *thesis-headings* '((:h1 . "chapter")
+                                  (:h2 . "section")
+                                  (:h3 . "subsection")
+                                  (:h4 . "subsubsection")))
+
 (defun latex-command (command &optional arg)
   (format nil "~&\\~A~@[{~A}~]~%" command arg))
 
@@ -243,16 +323,6 @@
 (defmethod emit-latex-gf (stream (type (eql :clearpage)) children &key (newline t))
   (emit-latex-command stream "clearpage" nil :newline t))
 
-(defvar *article-headings* '((:h1 . "section")
-                                   (:h2 . "subsection")
-                                   (:h3 . "subsubsection")
-                                   (:h4 . "paragraph")))
-
-(defvar *thesis-headings* '((:h1 . "chapter")
-                                  (:h2 . "section")
-                                  (:h3 . "subsection")
-                                  (:h4 . "subsubsection")))
-
 (defun get-headings ()
   (cond ((equal *document-class* "ucthesis")
          *thesis-headings*)
@@ -414,33 +484,10 @@
 
 
 
-(defparameter *latex-packages*
-  '("amssymb" "amsmath" "verbatim" "graphicx" "subfigure"
-    "caption" "hyperref" "fancyheadings" "longtable"
-    ("geometry" . "letterpaper")))
 ;;; "scicite" "pslatex" "times" "epsfig" "graphs" "newcent"
    
 (defun include-contents-of-file-file (stream file)
   (emit-latex stream (ch-util::contents-of-file file)))
-
-(defparameter *document-format-parameters*
-  '(("oddsidemargin" . "0.5in")
-    ("textwidth" . "6.0in")
-    ("topmargin" . "0in")
-    ("headheight" . "0.1in")
-    ("headsep" . "0.0in")
-    ("textheight" . "9.6in")
-    ("footskip" . "0.4in")
-    #+nil ("parindent" . "0.5in")))
-
-(defvar *section-numbering-depth* 5)
-
-(defvar *document-class* "article")
-(defvar *document-options* '("10pt"))
-
-(defvar *document-latex-commands*
-  '("\\newcommand{\\argmax}{\\operatornamewithlimits{argmax}}"
-    "\\newcommand{\\argmin}{\\operatornamewithlimits{argmin}}"))
 
 (defun latex-document-format (stream)
   (dolist (package *latex-packages*)
@@ -451,51 +498,6 @@
      do (emit-latex-parameter stream param val))
   (dolist (command *document-latex-commands*)
     (emit-latex stream command)))
-
-(defparameter *thesis-preamble*
-  "\\DeclareCaptionFont{singlespacing}{\\ssp}
-\\captionsetup{font={singlespacing,small}}")
-
-(defparameter *beamer-preamble*
-  "\\mode<presentation>{
-\\definecolor{nicegreen}{RGB}{10,100,10}
-\\setbeamercolor*{normal text}{bg=black,fg=white}
-\\setbeamercolor{structure}{fg=nicegreen}
-}
-")
-
-(defparameter *res-preamble* "
-\\oddsidemargin -.5in
-\\evensidemargin -.5in
-\\textwidth=6.0in
-\\itemsep=0in
-\\parsep=0in
-
-\\newenvironment{list1}{
-  \\begin{list}{}{%
-      \\setlength{\\itemsep}{0in}
-      \\setlength{\\parsep}{0in} \\setlength{\\parskip}{0in}
-      \\setlength{\\topsep}{0in} \\setlength{\\partopsep}{0in} 
-      \\setlength{\\leftmargin}{0.17in}}}{\\end{list}}
-\\newenvironment{list2}{
-  \\begin{list}{$\\bullet$}{%
-      \\setlength{\\itemsep}{0in}
-      \\setlength{\\parsep}{0in} \\setlength{\\parskip}{0in}
-      \\setlength{\\topsep}{0in} \\setlength{\\partopsep}{0in} 
-      \\setlength{\\leftmargin}{0.2in}}}{\\end{list}}")
-
-(defparameter *article-preamble*
-  "\\setcounter{topnumber}{2}
-\\setcounter{bottomnumber}{2}
-\\setcounter{totalnumber}{4}     % 2 may work better
-\\setcounter{dbltopnumber}{2}    % for 2-column pages
-\\renewcommand{\\dbltopfraction}{0.9}	% fit big float above 2-col. text
-\\renewcommand{\\textfraction}{0.07}	% allow minimal text w. figs
-%   Parameters for FLOAT pages (not text pages):
-\\renewcommand{\\floatpagefraction}{0.7}	% require fuller float pages
-% N.B.: floatpagefraction MUST be less than topfraction !!
-\\renewcommand{\\dblfloatpagefraction}{0.7}	% require fuller float pages
-\\setlength{\\captionmargin}{10pt}")
 
 (defun latex-document (stream sexp &key (options *document-options*) (class *document-class*))
   (emit-latex-command-2 stream "documentclass"
@@ -628,11 +630,11 @@
 ;; the intent here is that :bibliography is a tag with no children and
 ;; that we should output the appropriate latex bibliography here.
 (defmethod emit-latex-gf (stream (type (eql :bibliography)) children &key (newline t))
-  (declare (ignore newline))
+  (declare (optimize (debug 3)) (ignore newline))
   (destructuring-bind (&rest rest &key (clearpage t) &allow-other-keys)
       children
     (declare (ignore rest))
-    (when clearpage
+    (when (and clearpage (not (eql clearpage :nil)))
       (emit-latex-command stream "clearpage" nil :newline t)))
   (unless (equal *document-class* "beamer")
     (emit-latex stream (format nil "\\baselineskip~A" "11pt") :newline t))

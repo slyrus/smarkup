@@ -112,7 +112,7 @@
             (loop
                for j from i to (min (+ i images-per-line -1) end)
                collect
-               (let ((img (elt image-sequeNce j)))
+               (let ((img (elt image-sequence j)))
                  `(:image ,(namestring img)
                           :width ,width)))
             (if (and caption (> (+ i images-per-line) end))
