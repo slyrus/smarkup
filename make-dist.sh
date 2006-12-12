@@ -1,5 +1,5 @@
 PACKAGE=smarkup
-SYSTEMS=":${PACKAGE}"
+SYSTEMS=":${PACKAGE} :${PACKAGE}-test"
 
 sbcl --noinform --noprint \
     --eval '(require :asdf)' \

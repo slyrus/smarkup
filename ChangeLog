@@ -1,0 +1,216 @@
+2006-12-10  Cyrus Harmon  <ch-lisp@bobobeach.com>
+
+	* smarkup-test.asd, README, src/latex.cl, src/smarkup.cl, test/Science.bst, test/defpackage.cl, test/sample.bib, test/sample.sexp, test/smarkup-test.cl, version.lisp-expr:
+	smarkup 0.2.16
+	 * fix casing typo
+	 * moved things around in the latex file
+	 * added test directory
+
+2006-10-30  Cyrus Harmon  <ch-lisp@bobobeach.com>
+
+	* src/latex.cl, version.lisp-expr: smarkup 0.2.15
+	 * added resume class stuff
+
+	* src/latex.cl, version.lisp-expr: smarkup 0.2.14
+	 * add colorbox
+	 * fix slide bug
+	 * add emit-latex-command-6 and use this from centering and colorbox
+
+2006-09-28  Cyrus Harmon  <ch-lisp@bobobeach.com>
+
+	* src/latex.cl, src/smarkup.cl, version.lisp-expr: smarkup 0.2.13
+	 * defvar -> defparameter *document-format-parameters*
+	 * comment out parindent line
+	 * add increment-counter
+
+	* src/filter.cl, src/latex.cl, src/parameters.cl, version.lisp-expr:
+	smarkup 0.2.12
+	 * add (unused) :address
+	 * default to newline t for :pseudocode
+	 * and emit an extran newline
+	 * use no-number
+	 * comment out -14pt spacing stuff
+	 * use caption package
+	 * defvar -> defparameter for preambles
+	 * unless -> cond
+
+2006-09-26  Cyrus Harmon  <ch-lisp@bobobeach.com>
+
+	* src/latex.cl, version.lisp-expr: smarkup 0.2.11
+	 * add :hfill
+	 * comments and arg3 for emit-latex-command-5
+	 * only use scriptize in pseduocode for beamer
+	 * take a list of document-options now
+	 * accept clearpage :nil
+	 * tighten up spacing for articles
+	 * add minipage
+
+2006-09-19  Cyrus Harmon  <ch-lisp@bobobeach.com>
+
+	* src/latex.cl, version.lisp-expr: smarkup 0.2.10
+	 * defparameter -> defvar
+	 * emit scritpsize in pseudocode (really should conditionalize this for beamer)
+	 * accept clearpage :nil
+	 * only do document-subtitle for beamer
+
+2006-09-12  Cyrus Harmon  <ch-lisp@bobobeach.com>
+
+	* src/latex.cl, version.lisp-expr: smarkup 0.2.9
+	 * added :part emit-latex
+
+	* src/latex.cl, version.lisp-expr: smarkup 0.2.8
+	 * added emit-latex :pause
+	 * added emit-latex-command-5
+	 * don't emit \maketitle when in beamer
+	 * no newline after \item
+	 * columns now takes a format arg
+
+2006-09-11  Cyrus Harmon  <ch-lisp@bobobeach.com>
+
+	* src/filter.cl, src/latex.cl, src/parameters.cl, version.lisp-expr:
+	smarkup 0.2.7
+	 * added subtitle for smarkup-metadata
+	 * :initial-freshline nil in captions makes images look better
+	 * added :increment-counter arg to :subfigure
+	 * trivial spacing change
+	 * emit subtitle when present
+	 * add emit-latex-gf for :matrix and :bmatrix
+	 * add emit-latex-gf for :column and :columns
+
+	* src/latex.cl, version.lisp-expr: smarkup 0.2.6
+	 * added :hr
+	 * added support for beamer
+	 * defparameter -> defvar in a few places
+	 * slide -> slide-title
+	 * add :list and :item support
+
+2006-09-08  Cyrus Harmon  <ch-lisp@bobobeach.com>
+
+	* src/latex.cl, version.lisp-expr: smarkup 0.2.5
+	 * beamer support
+
+2006-09-07  Cyrus Harmon  <ch-lisp@bobobeach.com>
+
+	* src/latex.cl, src/smarkup.cl, version.lisp-expr: osmarkup 0.2.4
+	 * added emit-latex :quad and :qquad
+	 * added (unused) emit-latex-command-4
+	 * moved label emission down to below the caption for figures
+	 * fixed (?) first-caption thing
+	 * fixed subfigure caption
+
+2006-09-04  Cyrus Harmon  <ch-lisp@bobobeach.com>
+
+	* src/latex.cl, src/smarkup.cl, version.lisp-expr: smarkup 0.2.3
+	 * added emit-latex :nbsp or non-breaking space
+	 * added :initial-freshline keyword arg to emit-latex-command
+	 * use ch-util::with-keyword-args in a few places instead of d-b
+	 * added :label keyword args for :figure
+	 * started to add a first-caption facility to multi-page figures. doesn't work yet
+
+2006-08-30  Cyrus Harmon  <ch-lisp@bobobeach.com>
+
+	* src/latex.cl, src/smarkup.cl, version.lisp-expr: smarkup 0.2.2
+	  * *baseline-stretch* -> .6
+	  * *par-skip* -> 18pt
+	  * added with-latex-block macro
+	  * added hacky *document-single-space-count* PLEASE REMOVE
+	  * added emit-latex-gf for Soutput blocks
+	  * use to 11pt for theses
+	  * add emit-latex-gf for appendices instead of hacky H1 marker
+	  * trying to fix figure numbering
+	  * addded longtable package
+	  * lhead and rhead now look better
+	  * baselineskip defaults to 11pt now
+	  * added emit-latex-gf for tables, table rows, longtable and friends
+	  * changed images-per-line and images-per-page defaults
+	  * fix caption in multi-line figure
+
+2006-08-09  Cyrus Harmon  <ch-lisp@bobobeach.com>
+
+	* make-dist.sh, src/latex.cl, version.lisp-expr: smarkup 0.2.1
+	  * use asdf-package:package-system instead of ch-util:make-dist in make-dist.sh
+	  * added emit-children-to-string
+	  * added emit-latex-gf :label
+	  * added emit-latex-gf :ref
+	  * use remove-keywordish-args for figuring out :placement arg in :figure
+	  * parse smarkup in :subfigure captions
+
+2006-07-29  Cyrus Harmon  <ch-lisp@bobobeach.com>
+
+	* src/latex.cl, src/smarkup.cl, version.lisp-expr:
+	smarkup 0.1.2.7-20060729
+	  * added options to emit-latex-command
+	  * added caption to emit-latex-gf :subfigure
+	  * added *document-latex-commands* with argmin and argmax
+	  * emit *document-latex-commands*
+	  * clearpage for bibliography
+	  * add remove-pair-from-list
+	  * fixed default parameters for images-per-line and page
+	  * take caption as a list too
+	  * added multi-line-subfigure
+
+2006-07-18  Cyrus Harmon  <ch-lisp@bobobeach.com>
+
+	* version.lisp-expr: smarkup 0.1.2.6-20060717
+	  * added clearpage for bibliography
+
+2006-07-17  Cyrus Harmon  <ch-lisp@bobobeach.com>
+
+	* src/filter.cl, src/latex.cl, src/xhtml-render.cl, version.lisp-expr:
+	smarkup 0.1.2.5-20060716
+	  * bibcite handles multiple keys now
+	  * added outline stuff
+	  * parameter tweaking
+	  * fix single spacing
+
+2006-07-08  Cyrus Harmon  <ch-lisp@bobobeach.com>
+
+	* src/latex.cl, version.lisp-expr: smarkup 0.1.2.4-20060707
+	  * added pseudocode tag
+	  * more formatting to support ucthesis stuff
+
+2006-06-30  Cyrus Harmon  <ch-lisp@bobobeach.com>
+
+	* src/latex.cl, version.lisp-expr: smarkup 0.1.2.3-20060629
+	  * add latex equation support
+
+	* src/smarkup.cl, version.lisp-expr: smarkup 0.1.2.2-20060629
+	  * check for empty sequence in multi-line figure
+
+2006-06-26  Cyrus Harmon  <ch-lisp@bobobeach.com>
+
+	* src/filter.cl, src/latex.cl, src/smarkup.cl, version.lisp-expr:
+	smarkup-0.1.2.1-20060626
+	* fix emit-latex-gf :span
+	* add *images-per-page*
+	* fix make images-per-line and caption
+	* add multi-multi-line-figure
+
+2006-06-19  Cyrus Harmon  <ch-lisp@bobobeach.com>
+
+	* LICENSE, README, smarkup.asd, src/latex.cl, src/smarkup-asdf.cl, src/smarkup.cl, version.lisp-expr:
+	* Added LICENSE and README
+	* Added smarkup-asdf
+	* tweaking format stuff for ucthesis
+	* Added multi-line-figure
+
+2006-06-09  Cyrus Harmon  <ch-lisp@bobobeach.com>
+
+	* NOTES, make-dist.sh, smarkup.asd, src/latex.cl, version.lisp-expr:
+	* rework latex h2, h3 and h4 tag output
+	* add some missing files
+	* revised ASDF file with the new files
+
+2006-06-07  Cyrus Harmon  <ch-lisp@bobobeach.com>
+
+	* src/latex.cl, src/parameters.cl, src/smarkup.cl, src/xhtml-render.cl, src/filter.cl:
+	* add latex and xhtml backend to smarkup
+	* replaces the gigamonkey markup backend
+
+2006-05-28  Cyrus Harmon  <ch-lisp@bobobeach.com>
+
+	* src/smarkup.cl: not sure
+
+	* bootstrap.cl, smarkup.asd, src/defpackage.cl, src/quote-reader-macro.cl, src/smarkup.cl, version.lisp-expr:
+	adding new smarkup stuff
+
