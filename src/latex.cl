@@ -6,7 +6,7 @@
 
 (in-package :smarkup)
 
-(defvar *baseline-skip* "10pt")
+(defvar *baseline-skip* "12pt")
 (defvar *baseline-stretch* "1.6")
 (defvar *par-skip* "18pt")
 (defvar *latex-graphics-params* nil)
@@ -102,6 +102,10 @@
   (declare (ignore newline)))
 
 (defmethod emit-latex (stream (thing string) &key newline)
+  (declare (ignore newline))
+  (format stream "~A" thing))
+
+(defmethod emit-latex (stream (thing string) &key newline)
   (format stream "~A~:[~;~%~]" thing newline))
 
 (defmethod emit-latex (stream (thing character) &key newline)
@@ -121,6 +125,10 @@
 (defmethod emit-latex (stream (thing (eql :hr)) &key (newline nil))
   (declare (ignore newline))
   (emit-latex-newline stream))
+
+(defmethod emit-latex (stream (thing (eql :newline)) &key (newline nil))
+  (declare (ignore newline))
+  (emit-latex stream "\\\\" :newline t))
 
 (defmethod emit-latex (stream (thing (eql :pause)) &key (newline nil))
   (emit-latex stream "\\pause" :newline newline))
@@ -207,12 +215,13 @@
                            (newline t)
                            (initial-freshline t)
                            (arg))
-  (format stream "~:[~;~&~]\\~A~@[{~A}~]{"
+  (format stream "~:[~;~&~]\\~A~@[{~A}~]~:[~;{~]"
           initial-freshline
           command
-          arg)
+          arg
+          children)
   (loop for c in children do (emit-latex stream c))
-  (format stream "}~:[~;~%~]" newline))
+  (format stream "~:[~;}~]~:[~;~%~]" children newline))
 
 (defun emit-latex-parameter (stream command children &key (newline t))
   (format stream "~&\\~A~@[ ~A~]~:[~;~%~]"
@@ -337,6 +346,8 @@
          (setf *document-options* '("10pt")))
         ((member *document-class* '("res") :test #'equal)
          (setf *document-options* '("margin" "line")))
+        ((member *document-class* '("acm_proc_article-sp") :test #'equal)
+         (setf *document-options* nil))
         (t (setf *document-options* `(,*default-font-size*)))))
 
 (defmethod emit-latex-gf (stream (type (eql :appendices)) children &key (newline t))
@@ -352,7 +363,7 @@
       children
     (if (and clearpage (not (eql clearpage :nil)))
         (emit-latex-command stream "clearpage" nil :newline t)
-        (when (equal *document-class* "article")
+        (when (equal *document-class* "res")
           (emit-latex-command stream "vspace" '("-10pt"))))
     (when (equal *document-class* "ucthesis")
       (emit-latex stream "\\pagestyle{fancyplain}" :newline t)
@@ -361,7 +372,7 @@
                                        (cdr (assoc type (get-headings)))
                                        no-number)
                         children :newline newline)
-    (when (equal *document-class* "article")
+    (when (equal *document-class* "res")
       (emit-latex-command stream "vspace" '("-6pt")))
     (when label
       (emit-latex-command stream "label" label :newline newline))))
@@ -380,10 +391,10 @@
     (default-space stream)))
 
 (defmethod emit-latex-gf (stream (type (eql :h2)) children &key (newline t))
-  (when (equal *document-class* "article")
+  (when (equal *document-class* "res")
     (emit-latex-command stream "vspace" '("-5pt")))
   (emit-latex-header stream type children :newline newline)
-  (when (equal *document-class* "article")
+  (when (equal *document-class* "res")
     (emit-latex-command stream "vspace" '("-3pt")))
   #+nil (ch-util::with-keyword-args ((label) children)
             children
@@ -392,16 +403,16 @@
 
 (defmethod emit-latex-gf (stream (type (eql :h3)) children &key (newline t))
   #+nil (when (equal *document-class* "article")
-    (emit-latex-command stream "vspace" '("-14pt")))
+    (emit-latex-command stream "res" '("-14pt")))
   (emit-latex-header stream type children :newline newline)
-  (when (equal *document-class* "article")
+  (when (equal *document-class* "res")
     (emit-latex-command stream "vspace" '("-2pt"))))
 
 (defmethod emit-latex-gf (stream (type (eql :h4)) children &key (newline t))
   #+nil (when (equal *document-class* "article")
-          (emit-latex-command stream "vspace" '("-14pt")))
+          (emit-latex-command stream "res" '("-14pt")))
   (emit-latex-header stream type children :newline newline)
-  (when (equal *document-class* "article")
+  (when (equal *document-class* "res")
     (emit-latex-command stream "vspace" '("-3pt"))))
 
 (defmethod emit-latex-gf (stream (type (eql :part)) children &key (newline nil))
@@ -457,6 +468,17 @@
       (emit-latex-command stream "label" label :newline t))
     (emit-latex-command stream "end" "figure")))
 
+(defmethod emit-latex-gf (stream (type (eql :figure*)) children &key (newline t) (placement "htbp"))
+  (declare (ignorable newline))
+  (ch-util::with-keyword-args (((placement placement) label) children)
+      children
+    (emit-latex-command-3 stream "begin" "figure*" :options placement :newline nil)
+    (dolist (p children)
+      (emit-latex stream p :newline nil))
+    (when label
+      (emit-latex-command stream "label" label :newline t))
+    (emit-latex-command stream "end" "figure*")))
+
 (defmethod emit-latex-gf (stream (type (eql :subfigure)) children &key (newline nil))
   (ch-util::with-keyword-args ((caption (increment-counter t)) children)
       children
@@ -475,14 +497,16 @@
 (defmethod emit-latex-gf (stream (type (eql :document-element)) children &key (newline t))
   (destructuring-bind (element &rest rest) children
     (emit-latex-command-3 stream "begin" element :newline newline)
-    (dolist (p (remove-from-plist rest :clearpage))
+    (dolist (p rest)
       (emit-latex stream p :newline nil))
     (when (string-equal element "abstract")
-      (when (equal *document-class* "ucthesis")
-        (emit-latex-command stream "abstractsignature" nil)))
+      (cond ((equal *document-class* "ucthesis")
+             (emit-latex-command stream "abstractsignature" nil))))
     (emit-latex-command stream "end" element)))
 
-
+(defmethod emit-latex-gf (stream (type (eql :document-command)) children &key (newline t))
+  (destructuring-bind (element &rest rest) children
+    (emit-latex-command-6 stream element rest :newline newline)))
 
 ;;; "scicite" "pslatex" "times" "epsfig" "graphs" "newcent"
    
@@ -572,6 +596,7 @@
   
   (cond ((equal *document-class* "beamer"))
         ((equal *document-class* "res"))
+        ((equal *document-class* "acm_proc_article-sp"))
         (t
          (emit-latex stream "\\maketitle" :newline t)))
   
@@ -583,6 +608,7 @@
            (emit-latex stream "\\approvalpage" :newline t)
            (emit-latex stream "\\copyrightpage" :newline t)))
         ((equal *document-class* "beamer"))
+        ((equal *document-class* "acm_proc_article-sp"))
         (t (emit-latex stream (format nil "\\baselineskip~A" *baseline-skip*) :newline t)))
   
   (dolist (p sexp)

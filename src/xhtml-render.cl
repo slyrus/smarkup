@@ -29,6 +29,7 @@
     (:item         . :li)
     (:results      . (:code :class "results"))
     (:figure       . (:table :class "figure"))
+    (:figure*       . (:table :class "figure"))
     (:subfigure    . (:div :class "subfigure"))))
 
 

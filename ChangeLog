@@ -1,3 +1,9 @@
+2006-12-12  Cyrus Harmon  <ch-lisp@bobobeach.com>
+
+	* ChangeLog, make-dist.sh, version.lisp-expr: smarkup 0.2.17
+	 * added ChangeLog
+	 * fixed make-dist.sh
+
 2006-12-10  Cyrus Harmon  <ch-lisp@bobobeach.com>
 
 	* smarkup-test.asd, README, src/latex.cl, src/smarkup.cl, test/Science.bst, test/defpackage.cl, test/sample.bib, test/sample.sexp, test/smarkup-test.cl, version.lisp-expr:
