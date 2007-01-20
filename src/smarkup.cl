@@ -34,21 +34,26 @@
                           caption
                           &key
                           (start 0)
-                          (end (1- (length image-sequence)))
+                          (end)
                           (images-per-line *images-per-line*)
                           (width "1.1in"))
-  (when (some #'identity image-sequence)
-    `(:figure
-      ,@(loop for i from start to end by images-per-line
-              collect
-              `(:subfigure
-                ,@(loop
-                   for j from i to (min (+ i images-per-line -1) end)
-                   collect
-                   (let ((img (elt image-sequence j)))
-                     `(:image ,(namestring img)
-                       :width ,width)))))
-      ,(when caption `(:caption ,@(if (listp caption) caption (list caption)))))))
+  (let* ((image-sequence
+          (mapcan #'(lambda (x)
+                      (when x (list x)))
+                  image-sequence))
+         (end (or end (1- (length image-sequence)))))
+    (when (some #'identity image-sequence)
+      `(:figure
+        ,@(loop for i from start to end by images-per-line
+             collect
+             `(:subfigure
+               ,@(loop
+                    for j from i to (min (+ i images-per-line -1) end)
+                    collect
+                    (let ((img (elt image-sequence j)))
+                      `(:image ,(namestring img)
+                               :width ,width)))))
+        ,(when caption `(:caption ,@(if (listp caption) caption (list caption))))))))
 
 
 (defun multi-multi-line-figure (image-sequence
@@ -56,19 +61,24 @@
                                 caption
                                 (first-caption caption)
                                 (start 0)
-                                (end (1- (length image-sequence)))
+                                (end)
                                 (images-per-line *images-per-line*)
                                 (images-per-page *images-per-page*)
                                 (width "1in"))
-  `(:span
-     ,@(loop for i from start to end by images-per-page
-          collect
-            (multi-line-figure image-sequence (if (= i start)
-                                                  first-caption
-                                                  caption)
-                               :start i :end (min (+ i images-per-page -1) end)
-                               :images-per-line images-per-line
-                               :width width))))
+  (let* ((image-sequence
+          (mapcan #'(lambda (x)
+                      (when x (list x)))
+                  image-sequence))
+         (end (or end (1- (length image-sequence)))))
+    `(:span
+      ,@(loop for i from start to end by images-per-page
+           collect
+           (multi-line-figure image-sequence (if (= i start)
+                                                 first-caption
+                                                 caption)
+                              :start i :end (min (+ i images-per-page -1) end)
+                              :images-per-line images-per-line
+                              :width width)))))
 
 
 #+nil

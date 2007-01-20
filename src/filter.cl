@@ -107,6 +107,9 @@
     (setf (symbol-value (car sexp)) (cadr sexp))
     nil))
 
+(defmethod filter-gf ((filter (eql :lisp)) (car (eql :code-block)) list)
+  `((:div :class "lisp") (:pre ,@(cdr list))))
+
 ;;;
 ;;; markup-metadata filter. sets various special variables with
 ;;; document metadata info
