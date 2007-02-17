@@ -23,8 +23,8 @@
 
 (defvar *section-numbering-depth* 5)
 
-(defvar *document-class* "article")
-(defvar *document-options* '("10pt"))
+(defparameter *document-class* "article")
+(defparameter *document-options* '("10pt"))
 
 (defvar *document-latex-commands*
   '("\\newcommand{\\argmax}{\\operatornamewithlimits{argmax}}"
@@ -39,14 +39,16 @@
   "\\DeclareCaptionFont{singlespacing}{\\ssp}
 \\captionsetup{font={singlespacing,small}}")
 
+;;; \\captionsetup{font={singlespacing,small}}
+
 (defparameter *beamer-preamble*
   "\\mode<presentation>{
 \\definecolor{nicegreen}{RGB}{10,100,10}
 \\setbeamercolor*{normal text}{bg=black,fg=white}
 \\setbeamercolor{structure}{fg=nicegreen}
 }
-\\captionsetup{font={singlespacing,small}}
 ")
+
 
 (defparameter *res-preamble* "
 \\oddsidemargin -.5in
@@ -67,6 +69,28 @@
       \\setlength{\\parsep}{0in} \\setlength{\\parskip}{0in}
       \\setlength{\\topsep}{0in} \\setlength{\\partopsep}{0in} 
       \\setlength{\\leftmargin}{0.2in}}}{\\end{list}}")
+
+(defparameter *llncs-preamble*
+  "\\bibliographystyle{splncs}
+\\renewcommand\\floatpagefraction{.9}
+\\renewcommand\\topfraction{.9}
+\\renewcommand\\bottomfraction{.9}
+\\renewcommand\\textfraction{.1}   
+\\setcounter{totalnumber}{50}
+\\setcounter{topnumber}{50}
+\\setcounter{bottomnumber}{50}
+")
+
+(defparameter *acm-proc-article-preamble*
+  "\\bibliographystyle{splncs}
+\\renewcommand\\floatpagefraction{.9}
+\\renewcommand\\topfraction{.9}
+\\renewcommand\\bottomfraction{.9}
+\\renewcommand\\textfraction{.1}   
+\\setcounter{totalnumber}{50}
+\\setcounter{topnumber}{50}
+\\setcounter{bottomnumber}{50}
+")
 
 (defparameter *article-preamble*
   "\\setcounter{topnumber}{2}
@@ -264,13 +288,14 @@
 (defmethod emit-latex-gf (stream (type (eql :sc)) children &key newline)
   (emit-latex-block "sc" stream children :newline newline))
 
-(defvar *document-single-space-count* 0)
+(defparameter *document-single-space-count* 0)
 
 (defun single-space (stream)
   (cond ((equal *document-class* "ucthesis")
          (incf *document-single-space-count*)
          (emit-latex stream "\\ssp" :newline t))
         ((equal *document-class* "beamer"))
+        ((equal *document-class* "llncs"))
         (t (emit-latex stream (format nil "\\baselineskip~A" "12pt") :newline t))))
 
 (defun default-space (stream)
@@ -278,6 +303,7 @@
          (unless (plusp (decf *document-single-space-count*))
            (emit-latex stream (format nil "\\dsp") :newline t)))
         ((equal *document-class* "beamer"))
+        ((equal *document-class* "llncs"))
         (t (emit-latex stream (format nil "\\baselineskip~A" *baseline-skip*) :newline t))))
 
 (defmethod emit-latex-gf (stream (type (eql :pre)) children &key (newline nil))
@@ -297,7 +323,7 @@
           newline))
 
 (defmethod emit-latex-gf (stream (type (eql :pseudocode)) children &key (newline t))
-  (destructuring-bind (&key name (parameters " "))
+  (destructuring-bind (&key name (parameters " ") label)
       (car children)
     (single-space stream)
     (when (equal *document-class* "beamer")
@@ -307,6 +333,8 @@
             (loop for c in (cdr children)
                collect (emit-latex nil c))
             newline)
+    (when label
+      (emit-latex-command stream "label" label :newline t))
     (emit-latex-command stream "end" "pseudocode" :newline newline)
     (when (equal *document-class* "beamer")
       (emit-latex stream "}" :newline t))
@@ -348,6 +376,8 @@
          (setf *document-options* '("margin" "line")))
         ((member *document-class* '("acm_proc_article-sp") :test #'equal)
          (setf *document-options* nil))
+        ((member *document-class* '("llncs") :test #'equal)
+         (setf *document-options* '("oribibl")))
         (t (setf *document-options* `(,*default-font-size*)))))
 
 (defmethod emit-latex-gf (stream (type (eql :appendices)) children &key (newline t))
@@ -443,12 +473,40 @@
 (defmethod emit-latex-gf (stream (type (eql :centering)) children &key (newline nil))
   (emit-latex-command-6 stream "centering" children :newline newline))
 
+(defparameter *image-copy-path* nil)
+
+(defparameter *copy-image-files* nil)
+
 (defmethod emit-latex-gf (stream (type (eql :image)) children &key (newline t))
   (destructuring-bind (image-pathname &key
                                       (width)
+                                      (copy *copy-image-files*)
+                                      (convert-png-to-eps nil)
                                       &allow-other-keys)
       children
     (let ((image-file (ch-util:unix-name image-pathname)))
+      (when (and copy *image-copy-path*)
+        (let ((new-file (merge-pathnames (make-pathname :name (pathname-name image-file)
+                                                        :type (pathname-type image-file)
+                                                        :directory (cons :relative (nthcdr 5 (pathname-directory image-file))))
+                                          *image-copy-path*)))
+          (ensure-directories-exist new-file)
+          (cond ((and convert-png-to-eps
+                      (equal (pathname-type image-file)
+                             "png"))
+                 (setf new-file (merge-pathnames (make-pathname :type "eps")
+                                                 new-file))
+                 (print (sb-ext::run-program "/Users/sly/bin/png2eps"
+                                             (list image-file)
+                                             :environment '("PATH=/bobo/bin:/sw/bin:/sw/sbin:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/Users/sly/bin:/opt/local/bin:")
+                                             :if-output-exists :supersede
+                                             :output new-file)))
+                (t
+                 (cl-fad:copy-file image-file new-file :overwrite t)))
+          (print (cons
+                  new-file
+                  image-file))
+          (setf image-file new-file)))
       (apply #'emit-latex-command-2
              stream
              "includegraphics"
@@ -456,17 +514,32 @@
               :arg1 image-file
               :newline newline
               (when width `(:options ,(format nil "width=~A" width))))))))
-  
+
 (defmethod emit-latex-gf (stream (type (eql :figure)) children &key (newline t) (placement "htbp"))
   (declare (ignorable newline))
-  (ch-util::with-keyword-args (((placement placement) label) children)
+  (ch-util::with-keyword-args (((placement placement)
+                                (increment-counter t)
+                                (subfigure-start 0)
+                                label) children)
       children
     (emit-latex-command-3 stream "begin" "figure" :options placement :newline nil)
+    (when subfigure-start
+      (let ((subfigure-start (if (numberp subfigure-start)
+                                 subfigure-start
+                                 (parse-integer subfigure-start))))
+        (when (plusp subfigure-start)
+          (list (emit-latex-command-2 stream "addtocounter"
+                                      :arg1 "subfigure"
+                                      :arg2 subfigure-start
+                                      :newline nil)))))
     (dolist (p children)
       (emit-latex stream p :newline nil))
     (when label
       (emit-latex-command stream "label" label :newline t))
-    (emit-latex-command stream "end" "figure")))
+    (emit-latex-command stream "end" "figure")
+    (when (or (not increment-counter)
+              (eql increment-counter :nil))
+      (list (emit-latex-command-2 stream "addtocounter" :arg1 "figure" :arg2 "-1" :newline nil)))))
 
 (defmethod emit-latex-gf (stream (type (eql :figure*)) children &key (newline t) (placement "htbp"))
   (declare (ignorable newline))
@@ -526,20 +599,29 @@
 (defun latex-document (stream sexp &key (options *document-options*) (class *document-class*))
   (emit-latex-command-2 stream "documentclass"
                         :options (format nil "~{~A~^,~}" options) :arg1 class :newline t)
-  (emit-latex-command-2 stream "setcounter"
-                        :arg1 "secnumdepth"
-                        :arg2 *section-numbering-depth* :newline t)
+  (unless (equal *document-class* "llncs")
+    (emit-latex-command-2 stream "setcounter"
+                          :arg1 "secnumdepth"
+                          :arg2 *section-numbering-depth* :newline t))
   (latex-document-format stream)
 
   (when *document-title*
     (emit-latex-command stream "title" (list *document-title*)))
+  (when *document-titlerunning*
+    (emit-latex-command stream "titlerunning" (list *document-titlerunning*)))
   (when (and *document-subtitle*
              (equal *document-class* "beamer"))
     (emit-latex-command stream "subtitle" (list *document-subtitle*)))
   (when *document-author*
     (emit-latex-command stream "author" (list *document-author*)))
+  (when *document-tocauthor*
+    (emit-latex-command stream "tocauthor" (list *document-tocauthor*)))
+  (when *document-authorrunning*
+    (emit-latex-command stream "authorrunning" (list *document-authorrunning*)))
   (when *document-address*
     (emit-latex-command stream "address" (list *document-address*)))
+  (when *document-institute*
+    (emit-latex-command stream "institute" (list *document-institute*)))
   (when *document-date*
     (emit-latex-command stream "date" (list *document-date*)))
   (when (equal *document-class* "ucthesis")
@@ -587,6 +669,10 @@
          (princ *beamer-preamble* stream))
         ((equal *document-class* "res")
          (princ *res-preamble* stream))
+        ((equal *document-class* "llncs")
+         (princ *llncs-preamble* stream))
+        ((equal *document-class* "acm_proc_article-sp")
+         (princ *acm-proc-article-preamble* stream))
         (t
          (princ *article-preamble* stream)
          (emit-latex stream "\\geometry{verbose,tmargin=1in,bmargin=1in,lmargin=1in,rmargin=1in}" :newline t)))
@@ -600,14 +686,18 @@
         (t
          (emit-latex stream "\\maketitle" :newline t)))
   
-  (emit-latex stream "\\let\\mypdfximage\\pdfximage" :newline t)
-  (emit-latex stream "\\def\\pdfximage{\\immediate\\mypdfximage}" :newline t)
+  (cond ((equal *document-class* "llncs"))
+        ((equal *document-class* "acm_proc_article-sp"))
+        (t
+         (emit-latex stream "\\let\\mypdfximage\\pdfximage" :newline t)
+         (emit-latex stream "\\def\\pdfximage{\\immediate\\mypdfximage}" :newline t)))
   
   (cond ((equal *document-class* "ucthesis")
          (progn
            (emit-latex stream "\\approvalpage" :newline t)
            (emit-latex stream "\\copyrightpage" :newline t)))
         ((equal *document-class* "beamer"))
+        ((equal *document-class* "llncs"))
         ((equal *document-class* "acm_proc_article-sp"))
         (t (emit-latex stream (format nil "\\baselineskip~A" *baseline-skip*) :newline t)))
   
@@ -662,7 +752,7 @@
     (declare (ignore rest))
     (when (and clearpage (not (eql clearpage :nil)))
       (emit-latex-command stream "clearpage" nil :newline t)))
-  (unless (equal *document-class* "beamer")
+  (unless (member *document-class* '("beamer" "llncs") :test 'equal)
     (emit-latex stream (format nil "\\baselineskip~A" "11pt") :newline t))
   (let ((style-function (bibtex-compiler:find-bibtex-style *bibtex-style*))
       (bibtex-runtime:*cite-keys* (reverse *cite-keys*))
@@ -688,6 +778,13 @@
 ;;; equations
 
 ;; FIXME!!!
+
+(defmethod emit-latex-gf (stream (type (eql :quotation)) children &key (newline t))
+  (declare (ignorable newline))
+  (emit-latex-command-3 stream "begin" "quotation" :newline nil)
+  (dolist (p children)
+    (emit-latex stream p :newline nil))
+  (emit-latex-command stream "end" "quotation" :newline t))
 
 (defmethod emit-latex-gf (stream (type (eql :equation)) children &key (newline t))
   (declare (ignorable newline))

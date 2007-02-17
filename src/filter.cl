@@ -122,6 +122,10 @@
   (setf *document-title* (cadr list))
   (call-next-method))
 
+(defmethod filter-gf ((filter (eql :smarkup-metadata)) (car (eql :titlerunning)) list)
+  (setf *document-titlerunning* (cadr list))
+  (call-next-method))
+
 (defmethod filter-gf ((filter (eql :smarkup-metadata)) (car (eql :subtitle)) list)
   (setf *document-subtitle* (cadr list))
   (call-next-method))
@@ -130,8 +134,20 @@
   (setf *document-author* (cadr list))
   (call-next-method))
 
+(defmethod filter-gf ((filter (eql :smarkup-metadata)) (car (eql :tocauthor)) list)
+  (setf *document-tocauthor* (cadr list))
+  (call-next-method))
+
+(defmethod filter-gf ((filter (eql :smarkup-metadata)) (car (eql :authorrunning)) list)
+  (setf *document-authorrunning* (cadr list))
+  (call-next-method))
+
 (defmethod filter-gf ((filter (eql :smarkup-metadata)) (car (eql :address)) list)
   (setf *document-address* (cadr list))
+  (call-next-method))
+
+(defmethod filter-gf ((filter (eql :smarkup-metadata)) (car (eql :institute)) list)
+  (setf *document-institute* (cadr list))
   (call-next-method))
 
 (defparameter *bibtex-macros* (make-hash-table :test #'equalp))

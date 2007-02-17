@@ -33,6 +33,7 @@
 (defun multi-line-figure (image-sequence
                           caption
                           &key
+                          label
                           (start 0)
                           (end)
                           (images-per-line *images-per-line*)
@@ -53,6 +54,7 @@
                     (let ((img (elt image-sequence j)))
                       `(:image ,(namestring img)
                                :width ,width)))))
+        ,(when label `(:label ,label))
         ,(when caption `(:caption ,@(if (listp caption) caption (list caption))))))))
 
 
