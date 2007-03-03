@@ -56,6 +56,7 @@
 \\textwidth=6.0in
 \\itemsep=0in
 \\parsep=0in
+\\parskip=6pt
 
 \\newenvironment{list1}{
   \\begin{list}{}{%
@@ -114,6 +115,8 @@
                                   (:h2 . "section")
                                   (:h3 . "subsection")
                                   (:h4 . "subsubsection")))
+
+(defparameter *thesis-approval-page* t)
 
 (defun latex-command (command &optional arg)
   (format nil "~&\\~A~@[{~A}~]~%" command arg))
@@ -392,9 +395,7 @@
   (ch-util::with-keyword-args ((label (clearpage t) no-number) children)
       children
     (if (and clearpage (not (eql clearpage :nil)))
-        (emit-latex-command stream "clearpage" nil :newline t)
-        (when (equal *document-class* "res")
-          (emit-latex-command stream "vspace" '("-10pt"))))
+        (emit-latex-command stream "clearpage" nil :newline t))
     (when (equal *document-class* "ucthesis")
       (emit-latex stream "\\pagestyle{fancyplain}" :newline t)
       (emit-latex stream "\\cfoot{}" :newline t))
@@ -402,8 +403,6 @@
                                        (cdr (assoc type (get-headings)))
                                        no-number)
                         children :newline newline)
-    (when (equal *document-class* "res")
-      (emit-latex-command stream "vspace" '("-6pt")))
     (when label
       (emit-latex-command stream "label" label :newline newline))))
 
@@ -421,11 +420,9 @@
     (default-space stream)))
 
 (defmethod emit-latex-gf (stream (type (eql :h2)) children &key (newline t))
-  (when (equal *document-class* "res")
-    (emit-latex-command stream "vspace" '("-5pt")))
+
   (emit-latex-header stream type children :newline newline)
-  (when (equal *document-class* "res")
-    (emit-latex-command stream "vspace" '("-3pt")))
+
   #+nil (ch-util::with-keyword-args ((label) children)
             children
           (when label
@@ -434,16 +431,13 @@
 (defmethod emit-latex-gf (stream (type (eql :h3)) children &key (newline t))
   #+nil (when (equal *document-class* "article")
     (emit-latex-command stream "res" '("-14pt")))
-  (emit-latex-header stream type children :newline newline)
-  (when (equal *document-class* "res")
-    (emit-latex-command stream "vspace" '("-2pt"))))
+
+  (emit-latex-header stream type children :newline newline))
 
 (defmethod emit-latex-gf (stream (type (eql :h4)) children &key (newline t))
   #+nil (when (equal *document-class* "article")
           (emit-latex-command stream "res" '("-14pt")))
-  (emit-latex-header stream type children :newline newline)
-  (when (equal *document-class* "res")
-    (emit-latex-command stream "vspace" '("-3pt"))))
+  (emit-latex-header stream type children :newline newline))
 
 (defmethod emit-latex-gf (stream (type (eql :part)) children &key (newline nil))
   (emit-latex-command stream "part" (format nil "~{~A~^, ~}" children) :newline newline))
@@ -694,12 +688,14 @@
   
   (cond ((equal *document-class* "ucthesis")
          (progn
-           (emit-latex stream "\\approvalpage" :newline t)
+           (when *thesis-approval-page*
+             (emit-latex stream "\\approvalpage" :newline t))
            (emit-latex stream "\\copyrightpage" :newline t)))
         ((equal *document-class* "beamer"))
         ((equal *document-class* "llncs"))
         ((equal *document-class* "acm_proc_article-sp"))
-        (t (emit-latex stream (format nil "\\baselineskip~A" *baseline-skip*) :newline t)))
+        (t
+         (emit-latex stream (format nil "\\baselineskip~A" *baseline-skip*) :newline t)))
   
   (dolist (p sexp)
     (emit-latex stream p))
