@@ -45,16 +45,17 @@
          (end (or end (1- (length image-sequence)))))
     (when (some #'identity image-sequence)
       `(:figure
-        ,@(loop for i from start to end by images-per-line
-             collect
-             `(:subfigure
-               ,@(loop
-                    for j from i to (min (+ i images-per-line -1) end)
-                    collect
-                    (let ((img (elt image-sequence j)))
-                      `(:image ,(namestring img)
-                               :width ,width)))))
-        ,(when label `(:label ,label))
+        ,@(when label `(:label ,label))
+        (:centering
+         ,@(loop for i from start to end by images-per-line
+              collect
+              `(:subfigure
+                ,@(loop
+                     for j from i to (min (+ i images-per-line -1) end)
+                     collect
+                     (let ((img (elt image-sequence j)))
+                       `(:image ,(namestring img)
+                                :width ,width))))))
         ,(when caption `(:caption ,@(if (listp caption) caption (list caption))))))))
 
 

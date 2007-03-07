@@ -84,13 +84,16 @@
 
 (defparameter *acm-proc-article-preamble*
   "\\bibliographystyle{splncs}
-\\renewcommand\\floatpagefraction{.9}
-\\renewcommand\\topfraction{.9}
-\\renewcommand\\bottomfraction{.9}
+\\renewcommand\\floatpagefraction{.95}
+\\renewcommand\\topfraction{.95}
+\\renewcommand\\bottomfraction{.95}
 \\renewcommand\\textfraction{.1}   
 \\setcounter{totalnumber}{50}
 \\setcounter{topnumber}{50}
 \\setcounter{bottomnumber}{50}
+\\widowpenalty=10000
+\\clubpenalty=10000
+\\raggedbottom
 ")
 
 (defparameter *article-preamble*
@@ -299,6 +302,7 @@
          (emit-latex stream "\\ssp" :newline t))
         ((equal *document-class* "beamer"))
         ((equal *document-class* "llncs"))
+        ((equal *document-class* "acm_proc_article-sp"))
         (t (emit-latex stream (format nil "\\baselineskip~A" "12pt") :newline t))))
 
 (defun default-space (stream)
@@ -307,6 +311,7 @@
            (emit-latex stream (format nil "\\dsp") :newline t)))
         ((equal *document-class* "beamer"))
         ((equal *document-class* "llncs"))
+        ((equal *document-class* "acm_proc_article-sp"))
         (t (emit-latex stream (format nil "\\baselineskip~A" *baseline-skip*) :newline t))))
 
 (defmethod emit-latex-gf (stream (type (eql :pre)) children &key (newline nil))
@@ -496,7 +501,7 @@
                                              :if-output-exists :supersede
                                              :output new-file)))
                 (t
-                 (cl-fad:copy-file image-file new-file :overwrite t)))
+                 (cl-fad::copy-file image-file new-file :overwrite t)))
           (print (cons
                   new-file
                   image-file))
@@ -509,7 +514,14 @@
               :newline newline
               (when width `(:options ,(format nil "width=~A" width))))))))
 
-(defmethod emit-latex-gf (stream (type (eql :figure)) children &key (newline t) (placement "htbp"))
+(defparameter *default-figure-placement* "tbp")
+
+(defmethod emit-latex-gf (stream
+                          (type (eql :figure))
+                          children
+                          &key
+                          (newline t)
+                          (placement *default-figure-placement*))
   (declare (ignorable newline))
   (ch-util::with-keyword-args (((placement placement)
                                 (increment-counter t)
@@ -535,7 +547,12 @@
               (eql increment-counter :nil))
       (list (emit-latex-command-2 stream "addtocounter" :arg1 "figure" :arg2 "-1" :newline nil)))))
 
-(defmethod emit-latex-gf (stream (type (eql :figure*)) children &key (newline t) (placement "htbp"))
+(defmethod emit-latex-gf (stream
+                          (type (eql :figure*))
+                          children
+                          &key
+                          (newline t)
+                          (placement *default-figure-placement*))
   (declare (ignorable newline))
   (ch-util::with-keyword-args (((placement placement) label) children)
       children
