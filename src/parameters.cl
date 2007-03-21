@@ -6,6 +6,7 @@
 (defparameter *document-title* nil)
 (defparameter *document-titlerunning* nil)
 (defparameter *document-subtitle* nil)
+(defparameter *document-titlepage* t)
 (defparameter *document-author* nil)
 (defparameter *document-tocauthor* nil)
 (defparameter *document-authorrunning* nil)

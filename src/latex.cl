@@ -57,6 +57,8 @@
 \\itemsep=0in
 \\parsep=0in
 \\parskip=6pt
+\\topmargin=-.4in
+\\textheight=60\\baselineskip
 
 \\newenvironment{list1}{
   \\begin{list}{}{%
@@ -418,7 +420,9 @@
     (when (and clearpage (not (eql clearpage :nil)))
       (emit-latex-command stream "clearpage" nil :newline t))
     (single-space stream)
-    (emit-latex-command stream (cdr (assoc type (get-headings)))
+    (emit-latex-command stream (format nil "~A~:[~;*~]"
+                                       (cdr (assoc type (get-headings)))
+                                       no-number)
                         children :newline newline)
     (when label
       (emit-latex-command stream "label" label :newline newline))
@@ -695,7 +699,8 @@
         ((equal *document-class* "res"))
         ((equal *document-class* "acm_proc_article-sp"))
         (t
-         (emit-latex stream "\\maketitle" :newline t)))
+         (when *document-titlepage*
+           (emit-latex stream "\\maketitle" :newline t))))
   
   (cond ((equal *document-class* "llncs"))
         ((equal *document-class* "acm_proc_article-sp"))
