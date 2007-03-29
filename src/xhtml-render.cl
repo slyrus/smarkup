@@ -91,9 +91,9 @@
     `(:a :href ,href ,text)))
 
 (defun htmlize-header (tag body)
-  (destructuring-bind (heading &rest rest &key clearpage &allow-other-keys) body
-    (declare (ignore clearpage))
-    `(,tag ,@(cons heading (remove-from-plist rest :clearpage)))))
+  (destructuring-bind (heading &rest rest &key clearpage no-number &allow-other-keys) body
+    (declare (ignore clearpage no-number))
+    `(,tag ,@(cons heading (remove-from-plist rest :clearpage :no-number)))))
 
 (defun transform-sexp (sexp)
   (if (and (listp sexp) (car sexp))

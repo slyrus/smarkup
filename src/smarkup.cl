@@ -10,10 +10,15 @@
 
 (defgeneric render-as (type sexp file))
 
-(defun remove-from-plist (plist key)
-  (loop for (x y) on plist by #'cddr
-     append (unless (eql x key)
-               (list x y))))
+(defun remove-from-plist (plist &rest keys)
+  (cond ((eql (length keys) 1)
+         (loop for (x y) on plist by #'cddr
+            append (unless (eql x (car keys))
+                     (list x y))))
+        ((> (length keys) 1)
+         (reduce (lambda (&optional plist x)
+                   (when x (remove-from-plist plist x)))
+                 (cons plist keys)))))
 
 (defun remove-pair-from-list (list key)
   (let ((pos (position key list)))

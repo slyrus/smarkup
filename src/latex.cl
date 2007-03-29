@@ -59,6 +59,8 @@
 \\parskip=6pt
 \\topmargin=-.4in
 \\textheight=60\\baselineskip
+\\hyphenpenalty=5000
+\\tolerance=1000
 
 \\newenvironment{list1}{
   \\begin{list}{}{%
