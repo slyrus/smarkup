@@ -12,13 +12,13 @@
 (defvar *latex-graphics-params* nil)
 
 (defparameter *document-format-parameters*
-  '(("oddsidemargin" . "0.5in")
-    ("textwidth" . "6.0in")
-    ("topmargin" . "0in")
-    ("headheight" . "0.1in")
-    ("headsep" . "0.0in")
-    ("textheight" . "9.6in")
-    ("footskip" . "0.4in")
+  '(#+nil ("oddsidemargin" . "0.5in")
+    #+nil ("textwidth" . "6.0in")
+    #+nil ("topmargin" . "0in")
+    #+nil ("headheight" . "0.1in")
+    #+nil ("headsep" . "0.0in")
+    #+nil ("textheight" . "9.6in")
+    #+nil ("footskip" . "0.4in")
     #+nil ("parindent" . "0.5in")))
 
 (defvar *section-numbering-depth* 5)
@@ -691,8 +691,8 @@
         ((equal *document-class* "acm_proc_article-sp")
          (princ *acm-proc-article-preamble* stream))
         (t
-         (princ *article-preamble* stream)
-         (emit-latex stream "\\geometry{verbose,tmargin=1in,bmargin=1in,lmargin=1in,rmargin=1in}" :newline t)))
+         (emit-latex stream "\\geometry{verbose,tmargin=1in,bmargin=1in,lmargin=1in,rmargin=1in}" :newline t)
+         (princ *article-preamble* stream)))
   
   (emit-latex-command stream "begin" "document")
   (emit-latex-freshline stream)
