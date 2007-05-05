@@ -400,11 +400,19 @@
      do (emit-latex stream c))
   (default-space stream))
 
+(defparameter *h1-default-clearpage* t)
+(defparameter *h2-default-clearpage* t)
+
+(defparameter *default-number-sections* t)
+
 (defmethod emit-latex-gf (stream (type (eql :h1)) children &key (newline t))
-  (ch-util::with-keyword-args ((label (clearpage t) no-number) children)
+  (ch-util::with-keyword-args ((label
+                                (clearpage *h1-default-clearpage*)
+                                (no-number (not *default-number-sections*)))
+                               children)
       children
-    (if (and clearpage (not (eql clearpage :nil)))
-        (emit-latex-command stream "clearpage" nil :newline t))
+    (when (and clearpage (not (eql clearpage :nil)))
+      (emit-latex-command stream "clearpage" nil :newline t))
     (when (equal *document-class* "ucthesis")
       (emit-latex stream "\\pagestyle{fancyplain}" :newline t)
       (emit-latex stream "\\cfoot{}" :newline t))
@@ -417,7 +425,9 @@
 
 
 (defmethod emit-latex-header (stream type children &key (newline t))
-  (ch-util::with-keyword-args ((label clearpage no-number) children)
+  (ch-util::with-keyword-args ((label
+                                (clearpage *h2-default-clearpage*)
+                                (no-number (not *default-number-sections*))) children)
       children
     (when (and clearpage (not (eql clearpage :nil)))
       (emit-latex-command stream "clearpage" nil :newline t))
@@ -477,6 +487,15 @@
 
 (defmethod emit-latex-gf (stream (type (eql :centering)) children &key (newline nil))
   (emit-latex-command-6 stream "centering" children :newline newline))
+
+(defmethod emit-latex-gf (stream (type (eql :center2)) children &key (newline nil))
+  (declare (optimize (debug 3))
+           (ignore newline))
+  (emit-latex-newline stream)
+  (emit-latex-command stream "begin" '("centering") :newline nil)
+  (dolist (p children)
+    (emit-latex stream p :newline nil))
+  (emit-latex-command stream "end" '("centering")))
 
 (defparameter *image-copy-path* nil)
 
