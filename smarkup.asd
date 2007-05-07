@@ -15,7 +15,7 @@
                  (vers (merge-pathnames "version.lisp-expr" *load-truename*))
                (read vers))
   :description "S-Expression-based Markup Utilities"
-  :depends-on (:ch-asdf :ch-util :bibtex :puri :cl-fad)
+  :depends-on (:ch-asdf :ch-util :bibtex :puri :cl-fad :cl-typesetting)
   :components
   ((:module
     :src
@@ -30,6 +30,9 @@
                               :depends-on
                               (:defpackage :smarkup :filter :quote-reader-macro))
      (:smarkup-cl-source-file "latex"
+                              :depends-on
+                              (:defpackage :smarkup :parameters :filter :quote-reader-macro))
+     (:smarkup-cl-source-file "typesetting"
                               :depends-on
                               (:defpackage :smarkup :parameters :filter :quote-reader-macro))))
    (:static-file "version" :pathname #p"version.lisp-expr")

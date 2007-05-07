@@ -77,3 +77,15 @@
   (call-next-method)
   (ch-util::firefox-open (ch-util::unix-name (component-pathname c))))
 
+(defclass object-cl-pdf-file (ch-asdf:object-from-variable pdf-file) ())
+
+(defmethod perform ((op compile-op) (c object-cl-pdf-file))
+  (call-next-method)
+  (let ((sexp (symbol-value (ch-asdf::object-symbol c)))
+        (file (component-pathname c)))
+    (render-as :cl-pdf sexp file)))
+
+(defmethod perform ((op load-op) (c object-cl-pdf-file))
+  (call-next-method)
+  (ch-util::app-open (unix-name (component-pathname c))))
+
