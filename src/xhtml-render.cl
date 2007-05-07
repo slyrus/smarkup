@@ -26,6 +26,7 @@
     (:note         . (:div :class "note"))
     (:note-ref     . :sup)
     (:bullets      . :ul)
+    (:list         . :ul)
     (:item         . :li)
     (:results      . (:code :class "results"))
     (:figure       . (:table :class "figure"))
@@ -139,19 +140,42 @@
   (ch-util::make-hash-table-from-alist
    '((#\< . "&lt;")
      (#\> . "&gt;")
-     (#\& . "&amp;"))))
+     (#\& . "&amp;")
+     (#\No-Break_Space . "&#xa0;")
+     (#\LEFT_DOUBLE_QUOTATION_MARK . "&#8220;")
+     (#\RIGHT_DOUBLE_QUOTATION_MARK . "&#8221;")
+     (#\EM_DASH . "&#8212;")
+     (:eol . #\Space))))
 
 (defun get-xml-char (c)
   (let ((xc (gethash c *xml-char-map*)))
     (if xc xc c)))
 
-(defun render-text (stream text)
+(defun render-text (out text)
   (declare (optimize (debug 3)))
-  (cond ((stringp text)
-         (loop for c across text
-            do (princ (get-xml-char c) stream)))
-        (t (princ (get-xml-char text) stream))))
-
+  (macrolet ((match-second-char (c1 c2 out-char)
+                `(let ((n (peek-char nil in nil nil)))
+                  (if (eql n ,c2)
+                      (progn
+                        (read-char in)
+                        (princ ,(get-xml-char out-char) out))
+                      (princ ,(get-xml-char c1) out)))))
+    (cond ((stringp text)
+           (with-input-from-string (in text)
+             (loop for c = (read-char in nil nil) while c
+                do 
+                (cond ((eql c #\~)
+                       (princ (get-xml-char #\No-Break_Space) out))
+                      ((eql c #\.)
+                       (match-second-char #\. #\\ #\Space))
+                      ((eql c #\`)
+                       (match-second-char #\` #\` #\LEFT_DOUBLE_QUOTATION_MARK))
+                      ((eql c #\')
+                       (match-second-char #\' #\' #\RIGHT_DOUBLE_QUOTATION_MARK))
+                      ((eql c #\-)
+                       (match-second-char #\- #\- #\EM_DASH))
+                      (t (princ (get-xml-char c) out))))))
+          (t (princ (get-xml-char text) out)))))
 
 (defun render-content (stream content)
   (loop for s in content
