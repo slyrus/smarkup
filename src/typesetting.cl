@@ -96,8 +96,9 @@
   (tt::with-paragraph *default-paragraph-font*
     (render-elt contents)))
 
-(defparameter *default-bold-font*
-  '(:font "Times-Bold" :font-size 9.8))
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defparameter *default-bold-font*
+    '(:font "Times-Bold")))
 
 (defmacro highlight (text)
   `(tt:with-style ,*default-bold-font*
@@ -130,14 +131,24 @@
 (defparameter *item-decorator*
   (format nil "~A " (code-char #x81)))
 
-(defparameter *item-decorator-width*
-  (loop for char across *item-decorator*
-     summing (pdf:get-char-width char tt::*font* tt::*font-size*)))
-
 (defparameter *default-item-font*
-  (append  `(:left-margin 18
-             :first-line-indent ,(- *item-decorator-width*))
-           *default-paragraph-font*))
+  (concatenate
+   'list
+   '(:left-margin 18)
+   *default-paragraph-font*))
+
+(defun get-item-decorator-width ()
+  (let ((font-size (or (getf *default-item-font* :font-size)
+                       tt::*font-size*)))
+    (let* ((item-font (getf *default-item-font* :font))
+           (font (if item-font
+                     (pdf:get-font item-font)
+                     tt::*font*)))
+      (loop for char across *item-decorator*
+         summing (pdf:get-char-width char font font-size)))))
+
+(setf (getf *default-item-font* :first-line-indent)
+      (- (get-item-decorator-width)))
 
 (defmethod %render-elt ((tag (eql :item)) contents)
   (tt::with-paragraph *default-item-font*
@@ -151,14 +162,7 @@
   (tt:new-line)
   (when contents (render-elt contents)))
 
-(defun generate-header ()
-  (tt:compile-text ()
-    (tt:paragraph (:h-align :right
-                            :font "Times-Italic" :font-size 10)
-      (tt:vspace 2)
-      "COMBITHERA CONFIDENTIAL" :eol
-      (tt:vspace 2)
-      (tt:hrule :dy 0.5))))
+(defparameter *pdf-header-function* nil)
 
 (defmethod render-as ((type (eql :cl-pdf)) sexp file)
   (setq nix::*left-hyphen-minimum* 999
@@ -169,9 +173,11 @@
              (tt::add-box (tt::copy-style (tt::text-style tt::*content*)))
              (render-elts sexp)
              tt::*content*)))
-      (tt:draw-pages content
-                     :size :letter
-                     :margins '(72 72 72 72)
-                     :header (generate-header))
+      (apply #'tt:draw-pages
+             content
+             :size :letter
+             :margins '(72 72 72 72)
+             (when *pdf-header-function*
+               `(:header ,(funcall *pdf-header-function*))))
       (when pdf:*page* (typeset:finalize-page pdf:*page*))
       (tt:write-document file))))

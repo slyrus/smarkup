@@ -136,20 +136,24 @@
           (t (values (parse-tag (car tag))
                      (attributes-to-list (cdr tag)))))))
 
-(defparameter *xml-char-map*
-  (ch-util::make-hash-table-from-alist
-   '((#\< . "&lt;")
-     (#\> . "&gt;")
-     (#\& . "&amp;")
-     (#\No-Break_Space . "&#xa0;")
-     (#\LEFT_DOUBLE_QUOTATION_MARK . "&#8220;")
-     (#\RIGHT_DOUBLE_QUOTATION_MARK . "&#8221;")
-     (#\EM_DASH . "&#8212;")
-     (:eol . #\Space))))
 
-(defun get-xml-char (c)
-  (let ((xc (gethash c *xml-char-map*)))
-    (if xc xc c)))
+
+(eval-when (:compile-toplevel :load-toplevel :execute)
+
+  (defparameter *xml-char-map*
+    (ch-util::make-hash-table-from-alist
+     '((#\< . "&lt;")
+       (#\> . "&gt;")
+       (#\& . "&amp;")
+       (#\No-Break_Space . "&#xa0;")
+       (#\LEFT_DOUBLE_QUOTATION_MARK . "&#8220;")
+       (#\RIGHT_DOUBLE_QUOTATION_MARK . "&#8221;")
+       (#\EM_DASH . "&#8212;")
+       (:eol . #\Space))))
+
+  (defun get-xml-char (c)
+    (let ((xc (gethash c *xml-char-map*)))
+      (if xc xc c))))
 
 (defun render-text (out text)
   (declare (optimize (debug 3)))
