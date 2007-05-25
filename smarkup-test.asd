@@ -24,5 +24,4 @@
     ((:smarkup-test-cl-source-file "defpackage")
      (:smarkup-test-cl-source-file "smarkup-test" :depends-on (:defpackage))
      (:static-file "sample-bib" :pathname #p"sample.bib")
-     (:static-file "sample-sexp" :pathname #p"sample.sexp")
-     (:generated-file "sample-xhtml" :pathname #p"sample.xhtml")))))
+     (:static-file "sample-sexp" :pathname #p"sample.sexp")))))

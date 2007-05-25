@@ -125,6 +125,21 @@
 (defmethod %render-elt ((tag (eql :span)) contents)
   (render-elts contents))
 
+(defmacro with-keyword-args ((&rest args) list &body body)
+  `(destructuring-bind ((&key ,@args) (&rest ,list))
+       (apply #'ch-util::remove-keywordish-args
+              (mapcar #'ch-util::keywordicate
+                      (mapcar #'ch-util::keyword-arg-name
+                              ',args))
+              ,list)
+     ,@body))
+
+(defmethod %render-elt ((tag (eql :div)) contents)
+  (break)
+  (with-keyword-args (class id) contents
+    (declare (ignore class id))
+    (render-elts contents)))
+
 (defmethod %render-elt ((tag (eql :list)) contents)
   (render-elts contents))
 
@@ -162,6 +177,34 @@
   (tt:new-line)
   (when contents (render-elt contents)))
 
+(defmethod process-element ((document-type (eql :pdf)) (tag string) attrs body)
+  (put-smarkup-string tag))
+
+(defmethod process-element ((document-type (eql :pdf)) (tag (eql :h1)) attrs body)
+  (tt::with-paragraph *default-h1-font*
+    (call-next-method)))
+
+(defmethod process-element ((document-type (eql :pdf)) (tag (eql :h2)) attrs body)
+  (tt::with-paragraph *default-h2-font*
+    (call-next-method)))
+
+(defmethod process-element ((document-type (eql :pdf)) (tag (eql :b)) attrs body)
+  (highlight
+    (call-next-method)))
+
+(defmethod process-element ((document-type (eql :pdf)) (tag (eql :p)) attrs body)
+  (tt::with-paragraph *default-paragraph-font*
+    (call-next-method)))
+
+(defmethod process-element ((document-type (eql :pdf)) (tag (eql :eol)) attrs body)
+  (tt:new-line))
+
+(defmethod process-element ((document-type (eql :pdf)) (tag (eql :item)) attrs body)
+  (tt::with-paragraph *default-item-font*
+    (tt:put-string *item-decorator*)
+    (call-next-method)))
+
+
 (defparameter *pdf-header-function* nil)
 
 (defmethod render-as ((type (eql :cl-pdf)) sexp file)
@@ -171,7 +214,7 @@
     (let ((content
            (tt::with-text-content ((make-instance 'tt::text-content) :dont-save-style t)
              (tt::add-box (tt::copy-style (tt::text-style tt::*content*)))
-             (render-elts sexp)
+             (parse-document :pdf sexp)
              tt::*content*)))
       (apply #'tt:draw-pages
              content

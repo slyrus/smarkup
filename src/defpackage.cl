@@ -7,5 +7,6 @@
            #:filtered-object
            #:object-latex-file
            #:pdf-file
-           #:object-xhtml-file))
+           #:object-xhtml-file
+           #:object-cl-pdf-file))
 

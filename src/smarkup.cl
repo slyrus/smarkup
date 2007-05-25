@@ -88,30 +88,6 @@
                               :images-per-line images-per-line
                               :width width)))))
 
-
-#+nil
-(defun multi-line-subfigure (image-sequence
-                             &key
-                             caption
-                             (start 0)
-                             (end (1- (length image-sequence)))
-                             (images-per-line *images-per-line*)
-                             (width "1in"))
-  (when (some #'identity image-sequence)
-    `(:subfigure
-      ,@(loop for i from start to end by images-per-line
-           append
-           (append
-            (loop
-               for j from i to (min (+ i images-per-line -1) end)
-               collect
-               (let ((img (elt image-sequence j)))
-                 `(:image ,(namestring img)
-                          :width ,width)))
-            `((:p)
-              (:p))))
-      ,@(when caption `(:caption ,caption)))))
-
 (defun multi-line-subfigure (image-sequence
                              &key
                              caption
@@ -137,3 +113,83 @@
                 `(:caption ,caption)
                 (unless increment-counter
                   `(:increment-counter nil)))))))))
+
+;;; smarkup document parsing routines
+;;; the general structure of an smarkup document is:
+;;;
+;;; document ::= element*
+;;;
+;;; element ::= atom | tagged-element
+;;;
+;;; tagged-element ::= (tag body) | (tag attrs body) | ((tag attrs) body)
+;;;
+;;; body ::= element*
+;;;
+;;; tag ::= keyword
+;;;
+;;; attrs ::= attr*
+;;;
+;;; attr ::= attr-name attr-value
+;;;
+;;; attr-name ::= keyword
+;;;
+
+(defun process-body (document-type body)
+  (loop for element in body
+     collect (parse-element document-type element)))
+
+(defgeneric process-element (document-type tag attrs body))
+
+(defmethod process-element (document-type tag attrs body)
+  (print 'there)
+  (process-body document-type body))
+
+(defun parse-tag-and-attribute-list (list)
+  "Takes a list of the form (tag :attr1 value1 :attr2 value2) and
+returns a the two values tag and ((:attr1 . value1) (:attr2
+  . value2))."
+  (values (car list)
+          (loop for (name value) on (cdr list) by #'cddr
+             collect (cons name value))))
+
+(defun parse-tag-attributes-and-body (list)
+  "Takes a list of the form (tag :attr1 value1 ... :attrn valuen body)
+and returns a the three values tag, ((:attr1 . value1) ... (:attr2
+. value2)) and body. There may be no attributes specified. Attributes
+are distinguished by keywords. The first non-keyword value in a
+possible attribute name position and all subsequent items are treated
+as the body."
+  (when (listp list)
+    (loop for (name value) on (cdr list) by #'cddr
+       with attrs
+       with body
+       with parsing-attrs = t
+       do (cond ((and parsing-attrs (keywordp name))
+                 (push (cons name value) attrs))
+                (t
+                 (push name body)
+                 (when value (push value body))))
+       finally (return (values (car list)
+                               (nreverse attrs)
+                               (nreverse body))))))
+
+(defun parse-element (document-type element)
+  "Parse an smarkup element and return the content of the
+  element. [tagged-element ::= (tag body) | (tag attrs body) | ((tag
+  attrs) body)]"
+  (cond ((atom element)
+         (process-element document-type element nil nil))
+        (t (cond ((listp (car element))
+                  (multiple-value-bind (tag attrs)
+                      (parse-tag-and-attribute-list (car element))
+                    (process-element document-type tag attrs (cdr element))))
+                 (t
+                  (multiple-value-bind (tag attrs body)
+                      (parse-tag-attributes-and-body element)
+                    (process-element document-type tag attrs body)))))))
+
+(defun parse-document (document-type doc)
+  "Parse an smarkup document and return the elements contained in the
+the document. [document ::= element*]."
+  (loop for element in doc
+     collect (parse-element document-type element)))
