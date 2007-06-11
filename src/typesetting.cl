@@ -32,98 +32,78 @@
        (add-box ,restore-style)
        (use-style ,restore-style))))
 
+(defmacro with-dynamic-style (style &body body)
+  (with-gensyms (new-style restore-style)
+    `(let* ((,new-style (apply #'make-instance 'text-style ,style))
+	    (,restore-style (make-restore-style ,new-style)))
+      (add-box ,new-style)
+      (use-style ,new-style)
+      ,@(mapcar 'insert-stuff body)
+      (add-box ,restore-style)
+      (use-style ,restore-style))))
+
 (in-package :smarkup)
 
-(defgeneric %render-elt (tag contents))
-
-(defun render-elts (sexp)
-  (loop for s in sexp
-     do (render-elt s)))
+(defvar *verbatim* nil)
 
 (defun put-smarkup-string (string)
-  (tt:put-string
-   (macrolet ((match-second-char (c1 c2 out-char)
-                `(let ((n (peek-char nil in nil nil)))
-                  (if (eql n ,c2)
-                      (progn
-                        (read-char in)
-                        (write-char ,out-char out))
-                      (write-char ,c1 out)))))
-     (with-output-to-string (out)
-       (with-input-from-string (in string)
-         (loop for c = (read-char in nil nil) while c
-            do 
-            (cond ((eql c #\~)
-                   (write-char #\No-Break_Space out))
-                  ((eql c #\.)
-                   (match-second-char #\. #\\ #\Space))
-                  ((eql c #\`)
-                   (match-second-char #\` #\` (code-char #x93)))
-                  ((eql c #\')
-                   (match-second-char #\' #\' (code-char #x94)))
-                  ((eql c #\-)
-                   (match-second-char #\- #\- (code-char #x97)))
-                  (t (write-char c out)))))))))
+  (if *verbatim*
+      (tt:verbatim string)
+      (tt:put-string
+       (macrolet ((match-second-char (c1 c2 out-char)
+                    `(let ((n (peek-char nil in nil nil)))
+                       (if (eql n ,c2)
+                           (progn
+                             (read-char in)
+                             (write-char ,out-char out))
+                           (write-char ,c1 out)))))
+         (with-output-to-string (out)
+           (with-input-from-string (in string)
+             (loop for c = (read-char in nil nil) while c
+                do 
+                (cond ((eql c #\~)
+                       (write-char #\No-Break_Space out))
+                      ((eql c #\.)
+                       (match-second-char #\. #\\ #\Space))
+                      ((eql c #\`)
+                       (match-second-char #\` #\` (code-char #x93)))
+                      ((eql c #\')
+                       (match-second-char #\' #\' (code-char #x94)))
+                      ((eql c #\-)
+                       (match-second-char #\- #\- (code-char #x97)))
+                      (t (write-char c out))))))))))
 
-(defun render-elt (elt)
-  #+nil (print (car elt))
-  (cond ((stringp elt)
-         (put-smarkup-string elt))
-        ((stringp (car elt))
-         (put-smarkup-string (car elt))
-         (render-elt (cdr elt)))
-        #+nil ((and elt (atom elt))
-               elt)
-        ((atom (car elt))
-         (%render-elt (car elt)
-                      (cdr elt)))
-        ((listp (car elt))
-         (render-elt (car elt))
-         (render-elt (cdr elt)))
-        (t nil)))
-
-(defun collect-elements (contents)
-  (apply #'concatenate 'string (mapcar #'render-elt contents)))
-
-(defparameter *default-paragraph-font*
+(defparameter *default-paragraph-style*
   '(:h-align :justified
     :font "Times-Roman"
-    :font-size 9.8
+    :font-size 10
     :first-line-indent 18
     :bottom-margin 3))
 
-(defmethod %render-elt ((tag (eql :p)) contents)
-  (tt::with-paragraph *default-paragraph-font*
-    (render-elt contents)))
+(defparameter *default-bold-style*
+  '(:font "Times-Bold"
+    :font-size 10))
 
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (defparameter *default-bold-font*
-    '(:font "Times-Bold")))
+(defparameter *default-code-style*
+  '(:font "Courier"
+    :font-size 9))
 
-(defmacro highlight (text)
-  `(tt:with-style ,*default-bold-font*
-     ,text))
+(defparameter *default-pre-style*
+  '(:font "Courier"
+    :font-size 9
+    :bottom-margin 3))
 
-(defmethod %render-elt ((tag (eql :b)) contents)
-  (highlight
-    (render-elt contents)))
+(defparameter *default-h1-style*
+  '(:h-align :left :font "Helvetica-Bold" :font-size 14 :bottom-margin 3))
 
-(defparameter *default-h1-font*
-  '(:h-align :center :font "Helvetica-Bold" :font-size 14 :bottom-margin 3))
-
-(defparameter *default-h2-font*
+(defparameter *default-h2-style*
   '(:font "Helvetica-Bold" :font-size 11 :bottom-margin 3 :top-margin 3))
 
-(defmethod %render-elt ((tag (eql :h1)) contents)
-  (tt::with-paragraph *default-h1-font*
-    (render-elt contents)))
+(defparameter *default-h3-style*
+  '(:font "Helvetica-Bold" :font-size 10 :bottom-margin 3 :top-margin 3))
 
-(defmethod %render-elt ((tag (eql :h2)) contents)
-  (tt::with-paragraph *default-h2-font*
-    (render-elt contents)))
-
-(defmethod %render-elt ((tag (eql :span)) contents)
-  (render-elts contents))
+(defparameter *default-h4-style*
+  '(:font "Helvetica-Bold" :font-size 10 :bottom-margin 3 :top-margin 3))
 
 (defmacro with-keyword-args ((&rest args) list &body body)
   `(destructuring-bind ((&key ,@args) (&rest ,list))
@@ -134,93 +114,124 @@
               ,list)
      ,@body))
 
-(defmethod %render-elt ((tag (eql :div)) contents)
-  (break)
-  (with-keyword-args (class id) contents
-    (declare (ignore class id))
-    (render-elts contents)))
-
-(defmethod %render-elt ((tag (eql :list)) contents)
-  (render-elts contents))
-
 (defparameter *item-decorator*
   (format nil "~A " (code-char #x81)))
 
-(defparameter *default-item-font*
+(defparameter *default-item-style*
   (concatenate
    'list
    '(:left-margin 18)
-   *default-paragraph-font*))
+   *default-paragraph-style*))
 
 (defun get-item-decorator-width ()
-  (let ((font-size (or (getf *default-item-font* :font-size)
+  (let ((font-size (or (getf *default-item-style* :font-size)
                        tt::*font-size*)))
-    (let* ((item-font (getf *default-item-font* :font))
+    (let* ((item-font (getf *default-item-style* :font))
            (font (if item-font
                      (pdf:get-font item-font)
                      tt::*font*)))
       (loop for char across *item-decorator*
          summing (pdf:get-char-width char font font-size)))))
 
-(setf (getf *default-item-font* :first-line-indent)
+(setf (getf *default-item-style* :first-line-indent)
       (- (get-item-decorator-width)))
-
-(defmethod %render-elt ((tag (eql :item)) contents)
-  (tt::with-paragraph *default-item-font*
-    (tt:put-string *item-decorator*)
-    (render-elt contents)))
-
-(defmethod %render-elt (tag contents)
-  (when contents (render-elt (cdr contents))))
-
-(defmethod %render-elt ((tag (eql :eol)) contents)
-  (tt:new-line)
-  (when contents (render-elt contents)))
 
 (defmethod process-element ((document-type (eql :pdf)) (tag string) attrs body)
   (put-smarkup-string tag))
 
-(defmethod process-element ((document-type (eql :pdf)) (tag (eql :h1)) attrs body)
-  (tt::with-paragraph *default-h1-font*
-    (call-next-method)))
-
-(defmethod process-element ((document-type (eql :pdf)) (tag (eql :h2)) attrs body)
-  (tt::with-paragraph *default-h2-font*
-    (call-next-method)))
-
-(defmethod process-element ((document-type (eql :pdf)) (tag (eql :b)) attrs body)
-  (highlight
-    (call-next-method)))
-
-(defmethod process-element ((document-type (eql :pdf)) (tag (eql :p)) attrs body)
-  (tt::with-paragraph *default-paragraph-font*
-    (call-next-method)))
-
 (defmethod process-element ((document-type (eql :pdf)) (tag (eql :eol)) attrs body)
   (tt:new-line))
 
-(defmethod process-element ((document-type (eql :pdf)) (tag (eql :item)) attrs body)
-  (tt::with-paragraph *default-item-font*
-    (tt:put-string *item-decorator*)
+(defmethod process-element ((document-type (eql :pdf)) (tag (eql :h1)) attrs body)
+  (tt::with-paragraph *default-h1-style*
+    (call-next-method)))
+
+(defmethod process-element ((document-type (eql :pdf)) (tag (eql :h2)) attrs body)
+  (tt::with-paragraph *default-h2-style*
+    (call-next-method)))
+
+(defmethod process-element ((document-type (eql :pdf)) (tag (eql :h3)) attrs body)
+  (tt::with-paragraph *default-h3-style*
+    (call-next-method)))
+
+(defmethod process-element ((document-type (eql :pdf)) (tag (eql :h4)) attrs body)
+  (tt::with-paragraph *default-h4-style*
     (call-next-method)))
 
 
+(defmethod process-element ((document-type (eql :pdf)) (tag (eql :p)) attrs body)
+  (tt::with-paragraph *default-paragraph-style*
+    (call-next-method)))
+
+(defmethod process-element ((document-type (eql :pdf)) (tag (eql :b)) attrs body)
+  (tt::with-dynamic-style *default-bold-style*
+    (call-next-method)))
+
+(defmethod process-element ((document-type (eql :pdf)) (tag (eql :code)) attrs body)
+  (tt::with-dynamic-style *default-code-style*
+    (let ((*verbatim* t))
+      (call-next-method))))
+
+(defmethod process-element ((document-type (eql :pdf)) (tag (eql :pre)) attrs body)
+  (tt::with-paragraph *default-pre-style*
+    (let ((*verbatim* t))
+      (call-next-method))))
+
+(defmethod process-element ((document-type (eql :pdf)) (tag (eql :item)) attrs body)
+  (tt::with-paragraph *default-item-style*
+    (tt:put-string *item-decorator*)
+    (call-next-method)))
+
+(defmethod process-element ((document-type (eql :pdf)) (tag (eql :bibcite)) attrs body)
+  (tt:put-string
+   (format nil "[~{~A~^,~}]"
+           (loop for ref in body
+              collect (get-bib-order ref)))))
+
+(defmethod process-element ((document-type (eql :pdf)) (tag (eql :image)) attrs body)
+  (tt:image :file (car body) :dx 100 :dy 100))
+
+(defmethod process-element ((document-type (eql :pdf)) (tag (eql :bibliography)) attrs body)
+  (process-element document-type :h1 nil '("References"))
+  (loop for cite in (reverse *cite-keys*)
+     do
+       (let ((refnum (get-bib-order cite)))
+         (process-element document-type :p nil
+                          (list
+                           (format nil "~A. ~A"
+                                   refnum
+                                   (cite-text cite)))))))
+
+
 (defparameter *pdf-header-function* nil)
+(defparameter *pdf-title-page-function* nil)
+
+(defparameter *pdf-default-page-size* :letter)
+(defparameter *pdf-default-margins* '(72 72 72 72))
+
+(defun pdf-draw-pages (content)
+  (apply #'tt:draw-pages
+             content
+             :size *pdf-default-page-size*
+             :margins *pdf-default-margins*
+             :break :before
+             (when *pdf-header-function*
+               `(:header ,(funcall *pdf-header-function*))))
+  (when pdf:*page* (typeset:finalize-page pdf:*page*)))
 
 (defmethod render-as ((type (eql :cl-pdf)) sexp file)
   (setq nix::*left-hyphen-minimum* 999
         nix::*right-hyphen-minimum* 999)
   (tt:with-document ()
+    (when *pdf-title-page-function*
+      (funcall *pdf-title-page-function*))
+    
     (let ((content
            (tt::with-text-content ((make-instance 'tt::text-content) :dont-save-style t)
              (tt::add-box (tt::copy-style (tt::text-style tt::*content*)))
+             (when *document-title*
+               (process-element :pdf :h1 nil *document-title*))
              (parse-document :pdf sexp)
              tt::*content*)))
-      (apply #'tt:draw-pages
-             content
-             :size :letter
-             :margins '(72 72 72 72)
-             (when *pdf-header-function*
-               `(:header ,(funcall *pdf-header-function*))))
-      (when pdf:*page* (typeset:finalize-page pdf:*page*))
-      (tt:write-document file))))
+      (pdf-draw-pages content))
+    (tt:write-document file)))

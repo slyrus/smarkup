@@ -119,7 +119,7 @@
   (call-next-method))
 
 (defmethod filter-gf ((filter (eql :smarkup-metadata)) (car (eql :title)) list)
-  (setf *document-title* (cadr list))
+  (setf *document-title* (cdr list))
   (call-next-method))
 
 (defmethod filter-gf ((filter (eql :smarkup-metadata)) (car (eql :titlerunning)) list)

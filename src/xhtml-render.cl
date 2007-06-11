@@ -10,17 +10,19 @@
      PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
      "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">})
 
+#+nil
+`((:bibcite      . html-citation)
+  (:bibliography . html-bibliography)
+  (:image        . htmlize-image)
+  (:url          . htmlize-url)
+  (:href         . htmlize-href)
+  (:h1           . htmlize-header)
+  (:h2           . htmlize-header)
+  (:h3           . htmlize-header)
+  (:h4           . htmlize-header))
+
 (defparameter *html-element-transformation*
-  `((:bibcite      . html-citation)
-    (:bibliography . html-bibliography)
-    (:image        . htmlize-image)
-    (:url          . htmlize-url)
-    (:href         . htmlize-href)
-    (:h1           . htmlize-header)
-    (:h2           . htmlize-header)
-    (:h3           . htmlize-header)
-    (:h4           . htmlize-header)
-    (:example      . :pre)
+  `((:example      . :pre)
     (:sidebarhead  . (:div :class "sidebarhead"))
     (:sidebar      . (:div :class "sidebar"))
     (:note         . (:div :class "note"))
@@ -33,6 +35,7 @@
     (:figure*       . (:table :class "figure"))
     (:subfigure    . (:div :class "subfigure"))))
 
+(defparameter *stream* nil)
 
 ;;; TODO! Fix html-citation and add the other html tag filter functions!
 
@@ -46,16 +49,6 @@
            `((:a :href
                  ,(format nil "#ref~A" refnum))
              ,(format nil "[~A]" refnum))))))
-
-(defun cite-text (cite)
-  (let ((cite-hash (gethash cite *bibtex-database*)))
-    (format nil "~@[~A. ~]~@[~A ~]~@[~A ~]~@[~A ~]~@[~A ~]~@[(~A).~]"
-            (gethash "author" cite-hash)
-            (gethash "title" cite-hash)
-            (gethash "journal" cite-hash)
-            (gethash "volume" cite-hash)
-            (gethash "number" cite-hash)
-            (gethash "year" cite-hash))))
 
 (defun citation-string (cite)
   (let ((refnum (get-bib-order cite)))
@@ -181,69 +174,125 @@
                       (t (princ (get-xml-char c) out))))))
           (t (princ (get-xml-char text) out)))))
 
-(defun render-content (stream content)
+(defun render-content (content)
   (loop for s in content
-     do (render-sexp stream s)))
+     do (parse-element :xhtml s)))
 
 (defparameter *indent-level* 0)
 
 (defun render-element-tag (stream tag attributes)
-  (format stream "<~A~{~^ ~{~A=~S~^ ~}~}/>" tag attributes))
+  (format stream "<~A~{~^ ~{~A=~S~^ ~}~}/>" tag
+          (mapcar (lambda (x)
+                     (list (car x)
+                           (cdr x)))
+                  attributes)))
 
 (defun render-element-open-tag (stream tag attributes)
-  (format stream "<~A~{~^ ~{~A=~S~^ ~}~}>" tag attributes)
+  (format stream "<~A~{~^ ~{~A=~S~^ ~}~}>" tag
+          (mapcar (lambda (x)
+                    (list (car x)
+                          (cdr x)))
+                  attributes))
   (incf *indent-level*))
 
 (defun render-element-close-tag (stream tag)
   (format stream "</~a>~&" tag)
   (decf *indent-level*))
 
-(defun render-element (stream element content)
-  (when element
-    (multiple-value-bind (parsed-tag attributes)
-        (parse-tag element)
-      (if parsed-tag
-          (progn
-            (if content
-                (progn
-                  (render-element-open-tag stream parsed-tag attributes)
-                  (render-content stream content)
-                  (render-element-close-tag stream parsed-tag))
-                (render-element-tag stream parsed-tag attributes)))
-          (progn
-            (render-text stream element)
-            (when content
-              (render-sexp stream content)))))))
-
 (defun render-sexp (stream sexp)
   (declare (optimize (debug 3)))
   (cond ((null sexp) nil)
         ((atom sexp)
-         (render-text stream sexp))
+         )
         (t
          (let ((xfrm-sexp (transform-sexp sexp)))
            (render-element stream (car xfrm-sexp) (cdr xfrm-sexp))))))
 
-(defun render-sexp-to-string (sexp)
-  (with-output-to-string (string)
-    (render-sexp string sexp)))
+(defmethod process-element ((document-type (eql :xhtml)) (tag string) attrs body)
+  (render-text *stream* tag))
+
+(defmethod process-element ((document-type (eql :xhtml)) tag attrs body)
+
+  (let ((xfrm (cdr (assoc tag *html-element-transformation*))))
+    (when xfrm
+      (cond ((atom xfrm)
+             (setf tag xfrm))
+            (t
+             (setf tag (car xfrm))
+             (setf attrs (append (loop for (x y)
+                                    on (cdr xfrm)
+                                    collect (cons x y))
+                                 attrs))))))
+  
+  (when tag
+    (if body
+        (progn
+          (render-element-open-tag *stream* tag attrs)
+          (call-next-method)
+          (render-element-close-tag *stream* tag))
+        (render-element-tag *stream* tag attrs))))
+
+(defmethod process-element ((document-type (eql :xhtml)) (tag (eql :eol)) attrs body)
+  (process-element :xhtml :br attrs body))
+
+(defmethod process-element ((document-type (eql :xhtml)) (tag (eql :h1)) attrs body)
+  (call-next-method))
+
+(defmethod process-element ((document-type (eql :xhtml)) (tag (eql :h2)) attrs body)
+  (call-next-method))
+
+(defmethod process-element ((document-type (eql :xhtml)) (tag (eql :h3)) attrs body)
+  (call-next-method))
+
+(defmethod process-element ((document-type (eql :xhtml)) (tag (eql :h4)) attrs body)
+  (call-next-method))
+
+(defmethod process-element ((document-type (eql :xhtml)) (tag (eql :p)) attrs body)
+  (call-next-method))
+
+(defmethod process-element ((document-type (eql :xhtml)) (tag (eql :b)) attrs body)
+  (call-next-method))
+
+(defmethod process-element ((document-type (eql :xhtml)) (tag (eql :code)) attrs body)
+  (call-next-method))
+
+(defmethod process-element ((document-type (eql :xhtml)) (tag (eql :pre)) attrs body)
+  (call-next-method))
+
+(defmethod process-element ((document-type (eql :xhtml)) (tag (eql :item)) attrs body)
+  (call-next-method :xhtml
+                    :li attrs body))
+
+(defmethod process-element ((document-type (eql :xhtml)) (tag (eql :bibcite)) attrs body)
+  (call-next-method))
+
+(defmethod process-element ((document-type (eql :xhtml)) (tag (eql :image)) attrs body)
+  (call-next-method))
+
+(defmethod process-element ((document-type (eql :xhtml)) (tag (eql :bibliography)) attrs body)
+  (call-next-method))
 
 (defmethod render-as ((type (eql :xhtml)) sexp file)
   (let ((*document-render-type* :xhtml))
-    (setf *indent-level* 0)
+      (setf *indent-level* 0)
     (with-open-file (out file
                          :direction :output
                          :if-does-not-exist :create
                          :if-exists :supersede)
       (write-sequence *xhtml-header* out)
-      (render-content out
-                      `(((:html :xmlns "http://www.w3.org/1999/xhtml" "xml:lang" "en" :lang "en")
-                         (:head
-                          ,(when *document-title*
-                                 `(:title ,*document-title*))
-                          ,(when *html-css-stylesheet-url*
-                                 `((:link :rel "stylesheet" :type "text/css"
-                                          :href ,*html-css-stylesheet-url*))))
-                         (:body ,@sexp)))))))
+      (let ((*stream* out))
+        (parse-document :xhtml
+                        `(((:html :xmlns "http://www.w3.org/1999/xhtml" "xml:lang" "en" :lang "en")
+                           (:head
+                            ,(when *document-title*
+                                   `(:title ,@*document-title*))
+                            ,(when *html-css-stylesheet-url*
+                                   `((:link :rel "stylesheet" :type "text/css"
+                                            :href ,*html-css-stylesheet-url*))))
+                           (:body ,@sexp))))))))
 
+(defun render-sexp-to-string (sexp)
+  (with-output-to-string (string)
+    (let ((*stream* string))
+      (parse-document :xhtml sexp))))
 

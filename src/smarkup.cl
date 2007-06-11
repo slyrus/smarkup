@@ -114,6 +114,16 @@
                 (unless increment-counter
                   `(:increment-counter nil)))))))))
 
+(defun cite-text (cite)
+  (let ((cite-hash (gethash cite *bibtex-database*)))
+    (format nil "~@[~A. ~]~@[~A ~]~@[~A ~]~@[~A ~]~@[~A ~]~@[(~A).~]"
+            (gethash "author" cite-hash)
+            (gethash "title" cite-hash)
+            (gethash "journal" cite-hash)
+            (gethash "volume" cite-hash)
+            (gethash "number" cite-hash)
+            (gethash "year" cite-hash))))
+
 ;;; smarkup document parsing routines
 ;;; the general structure of an smarkup document is:
 ;;;
@@ -136,12 +146,11 @@
 
 (defun process-body (document-type body)
   (loop for element in body
-     collect (parse-element document-type element)))
+     do (parse-element document-type element)))
 
 (defgeneric process-element (document-type tag attrs body))
 
 (defmethod process-element (document-type tag attrs body)
-  (print 'there)
   (process-body document-type body))
 
 (defun parse-tag-and-attribute-list (list)
@@ -154,8 +163,8 @@ returns a the two values tag and ((:attr1 . value1) (:attr2
 
 (defun parse-tag-attributes-and-body (list)
   "Takes a list of the form (tag :attr1 value1 ... :attrn valuen body)
-and returns a the three values tag, ((:attr1 . value1) ... (:attr2
-. value2)) and body. There may be no attributes specified. Attributes
+and returns three values: tag, ((:attr1 . value1) ... (:attr2
+. value2)), and body. There may be no attributes specified. Attributes
 are distinguished by keywords. The first non-keyword value in a
 possible attribute name position and all subsequent items are treated
 as the body."
@@ -192,4 +201,4 @@ as the body."
   "Parse an smarkup document and return the elements contained in the
 the document. [document ::= element*]."
   (loop for element in doc
-     collect (parse-element document-type element)))
+     do (parse-element document-type element)))
