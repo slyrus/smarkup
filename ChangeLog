@@ -1,3 +1,125 @@
+2007-08-09  Cyrus Harmon  <ch-lisp@bobobeach.com>
+
+	* .cvsignore, bibliography.lisp, defpackage.lisp, filter.lisp, latex.lisp, parameters.lisp, quote-reader-macro.lisp, smarkup-asdf.lisp, smarkup.asd, smarkup.lisp, typesetting.lisp, version.lisp-expr, xhtml-render.lisp:
+	smarkup 0.3.6
+	 * moved src/*.cl to *.lisp
+	 * added render-string
+
+2007-06-11  Cyrus Harmon  <ch-lisp@bobobeach.com>
+
+	* src/filter.cl, src/latex.cl, src/smarkup.cl, src/typesetting.cl, src/xhtml-render.cl, version.lisp-expr:
+	smarkup 0.3.5
+	 * add results emit-latex-gf method
+	 * moved cite-text to smarkup.cl
+	 * fixed proces body
+	 * removed debugging print
+	 * doc changes
+	 * added with-dynamic-style macro
+	 * reworked html rendering stuff
+
+2007-05-25  Cyrus Harmon  <ch-lisp@bobobeach.com>
+
+	* smarkup-test.asd, src/defpackage.cl, src/smarkup.cl, src/typesetting.cl, test/smarkup-test.cl, version.lisp-expr:
+	smarkup 0.3.4
+	 * in the process of overhauling the parsing code.
+	 * checking in so I can at least get back here if things go wrong...
+	 * export object-xhtml-file and object-cl-pdf-file
+	 * remove a #+nil multi-line-subfigure defun
+	 * added new smarkup document parsing routines
+	 * started using new parsing routines in cl-typesetting backend
+
+2007-05-10  Cyrus Harmon  <ch-lisp@bobobeach.com>
+
+	* version.lisp-expr: smarkup 0.3.3
+	 * removed generated-file from smarkup-test.asd so that make-dist.sh is happy again
+
+	* src/typesetting.cl, src/xhtml-render.cl, version.lisp-expr:
+	smarkup 0.3.2
+	 * added eval-whens for font lists and xml char map
+	 * added get-item-decorator-width
+	 * moved header function into *pdf-header-function*
+
+2007-05-07  Cyrus Harmon  <ch-lisp@bobobeach.com>
+
+	* src/xhtml-render.cl, version.lisp-expr: smarkup 0.3.1
+	 * fix XHTML output for things like ~ for &nsbp; quotes, em-dashes,
+	   etc...
+
+	* smarkup.asd, src/typesetting.cl, version.lisp-expr, src/smarkup-asdf.cl:
+	smarkup 0.3.0
+	 * added typesetting backend
+	 * added object-cl-pdf-file class for use with typesetting
+
+2007-05-05  Cyrus Harmon  <ch-lisp@bobobeach.com>
+
+	* src/latex.cl, version.lisp-expr: smarkup 0.2.26
+	 * added *h1-default-clearpage*, *h2-default-clearpage* and
+	   *default-number-sections*
+	 * use those as defaults
+	 * added bogus :center2 centering stuff
+
+2007-04-19  Cyrus Harmon  <ch-lisp@bobobeach.com>
+
+	* src/latex.cl, version.lisp-expr: smarkup 0.2.25
+	 * comment out the *document-format-parameters* params
+	 * reorder the geometry specs and the preamble
+
+2007-03-29  Cyrus Harmon  <ch-lisp@bobobeach.com>
+
+	* src/latex.cl, src/smarkup.cl, src/xhtml-render.cl, version.lisp-expr:
+	smarkup 0.2.24
+	 * remove-from-plist now takes a list of things to remove
+	 * tightened up hypenation
+	 * remove things from plist
+
+2007-03-21  Cyrus Harmon  <ch-lisp@bobobeach.com>
+
+	* src/latex.cl, src/parameters.cl, version.lisp-expr: smarkup 0.2.23
+	 * added *document-titlepage* flag
+	 * fixed :no-number for :h3 etc...
+
+2007-03-07  Cyrus Harmon  <ch-lisp@bobobeach.com>
+
+	* smarkup.asd, src/latex.cl, src/smarkup.cl, version.lisp-expr:
+	smarkup 0.2.22
+	 * various changes to make ILC paper better
+
+2007-03-03  Cyrus Harmon  <ch-lisp@bobobeach.com>
+
+	* src/latex.cl, version.lisp-expr: smarkup 0.2.21
+	 * added *thesis-approval-page*
+	 * fixed resume spacing
+
+2007-02-17  Cyrus Harmon  <ch-lisp@bobobeach.com>
+
+	* src/filter.cl, src/latex.cl, src/parameters.cl, src/smarkup.cl, version.lisp-expr:
+	smarkup 0.2.20
+	 * add :titlerunning, :tocauthor, :authorrunning and :institute to smarkup-metadata
+	 * back to some defparameters instead of defvars
+	 * added llncs-preamble
+	 * added acm-proc-article-preamble
+	 * llncs and acm-proc-article document-class stuff
+	 * added copy-image-files bit
+	 * :quotation
+	 * clean up some preamble stuff
+	 * add labels to multi-line-figures
+
+2007-01-20  Cyrus Harmon  <ch-lisp@bobobeach.com>
+
+	* src/filter.cl, src/smarkup.cl, version.lisp-expr: smarkup 0.2.19
+	 * add code-block tag to lisp filter
+	 * check for nil images in multi-line-figure and friends (some?)
+
+2006-12-16  Cyrus Harmon  <ch-lisp@bobobeach.com>
+
+	* ChangeLog, src/latex.cl, src/xhtml-render.cl, version.lisp-expr:
+	smarkup 0.2.18
+	 * undoing some of the resume damage
+	 * making work with acm proceedings
+	 * added some newlien hackery
+	 * added figure*
+	 * added document-element and document-command
+
 2006-12-12  Cyrus Harmon  <ch-lisp@bobobeach.com>
 
 	* ChangeLog, make-dist.sh, version.lisp-expr: smarkup 0.2.17

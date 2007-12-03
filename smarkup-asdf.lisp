@@ -42,6 +42,13 @@
              (symbol-value (ch-asdf::object-symbol c))
              (component-pathname c)))
 
+(defmacro with-component-directory ((component) &body body)
+  `(ch-util::with-current-directory
+       (make-pathname
+        :directory (pathname-directory
+                    (component-pathname ,component)))
+     ,@body))
+
 (defmethod perform ((operation compile-op) (c object-latex-file))
   (with-component-directory (c)
     (let ((unix-path (ch-util::unix-name (component-pathname c))))

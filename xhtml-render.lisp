@@ -32,8 +32,9 @@
     (:item         . :li)
     (:results      . (:code :class "results"))
     (:figure       . (:table :class "figure"))
-    (:figure*       . (:table :class "figure"))
-    (:subfigure    . (:div :class "subfigure"))))
+    (:figure*      . (:table :class "figure"))
+    (:subfigure    . (:div :class "subfigure"))
+    (#\Newline     . :hr)))
 
 (defparameter *stream* nil)
 
@@ -181,6 +182,7 @@
 (defparameter *indent-level* 0)
 
 (defun render-element-tag (stream tag attributes)
+  (break)
   (format stream "<~A~{~^ ~{~A=~S~^ ~}~}/>" (string-downcase tag)
           (mapcar (lambda (x)
                     (list (car x)
@@ -272,6 +274,9 @@
 
 (defmethod process-element ((document-type (eql :xhtml)) (tag (eql :bibliography)) attrs body)
   (call-next-method))
+
+(defmethod process-element ((document-type (eql :xhtml)) (tag (eql #\Newline)) attrs body)
+  (call-next-method :hr))
 
 (defmethod render-as ((type (eql :xhtml)) sexp file)
   (let ((*document-render-type* :xhtml))
