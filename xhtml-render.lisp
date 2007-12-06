@@ -182,7 +182,6 @@
 (defparameter *indent-level* 0)
 
 (defun render-element-tag (stream tag attributes)
-  (break)
   (format stream "<~A~{~^ ~{~A=~S~^ ~}~}/>" (string-downcase tag)
           (mapcar (lambda (x)
                     (list (car x)
