@@ -60,7 +60,6 @@
                             (list unix-path)))))
 
 (defmethod operation-done-p ((o ch-asdf::generate-op) (c object-latex-file))
-  (declare (optimize (debug 3)))
   (let ((on-disk-time
          (file-write-date (component-pathname c)))
         (obj (asdf::find-component
