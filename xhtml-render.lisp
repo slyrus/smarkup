@@ -184,7 +184,7 @@
 (defun render-element-tag (stream tag attributes)
   (format stream "<~A~{~^ ~{~A=~S~^ ~}~}/>" (string-downcase tag)
           (mapcar (lambda (x)
-                    (list (car x)
+                    (list (string-downcase (car x))
                           (cdr x)))
                   attributes)))
 
