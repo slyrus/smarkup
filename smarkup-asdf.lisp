@@ -25,14 +25,6 @@
 (defmethod component-pathname ((component filtered-object)))
 
 (defparameter *pdflatex-program* "pdflatex")
-(defparameter *pdflatex-program-path*
-  (let ((found (sb-ext:find-executable-in-search-path
-                *pdflatex-program*)))
-    (unless found
-      (setf found 
-            #+darwin "/opt/local/bin/pdflatex"
-            #-darwin "/usr/local/bin/pdflatex"))
-    found))
 
 (defclass object-latex-file (ch-asdf:object-from-variable generated-file) ())
 
@@ -52,11 +44,11 @@
 (defmethod perform ((operation compile-op) (c object-latex-file))
   (with-component-directory (c)
     (let ((unix-path (ch-util::unix-name (component-pathname c))))
-      (ch-util::run-program *pdflatex-program-path*
+      (ch-util::run-program *pdflatex-program*
                             (list unix-path))
       ;; we have to do this twice to get the references right!
       ;; maybe 3x?
-      (ch-util::run-program *pdflatex-program-path*
+      (ch-util::run-program *pdflatex-program*
                             (list unix-path)))))
 
 (defmethod operation-done-p ((o ch-asdf::generate-op) (c object-latex-file))
