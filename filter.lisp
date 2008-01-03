@@ -69,20 +69,19 @@
         (progn (mapcar #'eval lines)
                nil)
         `((:div :class "lisp")
-          (:pre
-           ,@(mapcan #'(lambda (x)
-                         (cons `(:code 
-                                 ,(when show-commands
-                                        (lc-format nil "~W~%" x)))
-                               (let ((output (eval x)))
-                                 (if show-results
-                                     (list `(:results
-                                             ,(if (stringp output)
-                                                  (lc-format nil "~W~%" output)
-                                                  (format nil "~S~%" output)))
-                                           #\Newline)
-                                     (list #\Newline)))))
-                     lines))))))
+          ,@(mapcan #'(lambda (x)
+                        (cons `(:code 
+                                ,(when show-commands
+                                       (lc-format nil "~W~%" x)))
+                              (let ((output (eval x)))
+                                (if show-results
+                                    (list `(:results
+                                            ,(if (stringp output)
+                                                 (lc-format nil "~W~%" output)
+                                                 (format nil "~S~%" output)))
+                                          #\Newline)
+                                    (list #\Newline)))))
+                    lines)))))
 
 (defmethod filter-gf ((filter (eql :lisp)) (car (eql :lisp)) list)
   (eval-lisp car (cdr list)))

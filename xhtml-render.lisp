@@ -30,7 +30,7 @@
     (:bullets      . :ul)
     (:list         . :ul)
     (:item         . :li)
-    (:results      . (:code :class "results"))
+    (:results      . :code)
     (:figure       . (:table :class "figure"))
     (:figure*      . (:table :class "figure"))
     (:subfigure    . (:div :class "subfigure"))
