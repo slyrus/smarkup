@@ -26,6 +26,7 @@
     (:sidebarhead  . (:div :class "sidebarhead"))
     (:sidebar      . (:div :class "sidebar"))
     (:note         . (:div :class "note"))
+    (:title        . (:div :class "title"))
     (:note-ref     . :sup)
     (:bullets      . :ul)
     (:list         . :ul)
@@ -186,14 +187,20 @@
           (mapcar (lambda (x)
                     (list (string-downcase (car x))
                           (cdr x)))
-                  attributes)))
+                  (mapcar (lambda (attr)
+                            (cons (string-downcase (car attr))
+                                  (cdr attr)))
+                          attributes))))
 
 (defun render-element-open-tag (stream tag attributes)
   (format stream "<~A~{~^ ~{~A=~S~^ ~}~}>" (string-downcase tag)
           (mapcar (lambda (x)
                     (list (car x)
                           (cdr x)))
-                  attributes))
+                  (mapcar (lambda (attr)
+                            (cons (string-downcase (car attr))
+                                  (cdr attr)))
+                          attributes)))
   (incf *indent-level*))
 
 (defun render-element-close-tag (stream tag)
@@ -223,6 +230,7 @@
              (setf tag (car xfrm))
              (setf attrs (append (loop for (x y)
                                     on (cdr xfrm)
+                                    by #'cddr
                                     collect (cons x y))
                                  attrs))))))
   

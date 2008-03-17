@@ -71,8 +71,8 @@
         `((:div :class "lisp")
           ,@(mapcan #'(lambda (x)
                         (cons `(:code 
-                                ,(when show-commands
-                                       (lc-format nil "~W~%" x)))
+                                (:pre ,(when show-commands
+                                             (lc-format nil "~W~%" x))))
                               (let ((output (eval x)))
                                 (if show-results
                                     (list `(:results
