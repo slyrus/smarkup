@@ -109,6 +109,27 @@
 (defmethod filter-gf ((filter (eql :lisp)) (car (eql :code-block)) list)
   `((:div :class "lisp") (:pre ,@(cdr list))))
 
+(defmethod filter-gf ((filter (eql :lisp)) (car (eql :class)) list)
+  (let ((class (cadr list)))
+    `((:div :class "doc class")
+      (:p :class "doc-name class-name" "[CLASS]"
+          :newline
+          ,(symbol-name class))
+      (:p :class "doc-documentation class-documentation" ,(documentation class 'type)))))
+
+(defmethod filter-gf ((filter (eql :lisp)) (car (eql :generic-function)) list)
+  (let ((gf (cadr list)))
+    `((:div :class "doc generic-function")
+      (:p :class "doc-name gf-name" "[GENERIC FUNCTION]" :newline "("
+          ,(symbol-name gf)
+          " "
+          ,@(butlast
+             (mapcan (lambda (x)
+                       (list (symbol-name x) " "))
+                     (sb-mop:generic-function-lambda-list (fdefinition gf))))
+          ")")
+      (:p :class "doc-documentation gf-documentation" ,(documentation gf 'function)))))
+
 ;;;
 ;;; markup-metadata filter. sets various special variables with
 ;;; document metadata info

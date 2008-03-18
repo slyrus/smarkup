@@ -31,11 +31,11 @@
     (:bullets      . :ul)
     (:list         . :ul)
     (:item         . :li)
-    (:results      . :code)
+    (:results      . (:code :class "results"))
     (:figure       . (:table :class "figure"))
     (:figure*      . (:table :class "figure"))
     (:subfigure    . (:div :class "subfigure"))
-    (#\Newline     . :hr)))
+    (:newline     . :br)))
 
 (defparameter *stream* nil)
 
