@@ -112,21 +112,34 @@
 (defmethod filter-gf ((filter (eql :lisp)) (car (eql :class)) list)
   (let ((class (cadr list)))
     `((:div :class "doc class")
-      (:p :class "doc-name class-name" "[CLASS]"
-          :newline
-          ,(symbol-name class))
+      (:p :class "doc-type" "[CLASS]")
+      (:p :class "doc-name class-name" ,(symbol-name class))
       (:p :class "doc-documentation class-documentation" ,(documentation class 'type)))))
 
 (defmethod filter-gf ((filter (eql :lisp)) (car (eql :generic-function)) list)
+  (declare (optimize (debug 3)))
   (let ((gf (cadr list)))
     `((:div :class "doc generic-function")
-      (:p :class "doc-name gf-name" "[GENERIC FUNCTION]" :newline "("
-          ,(symbol-name gf)
-          " "
-          ,@(butlast
-             (mapcan (lambda (x)
-                       (list (symbol-name x) " "))
-                     (sb-mop:generic-function-lambda-list (fdefinition gf))))
+      (:p :class "doc-type" "[GENERIC FUNCTION]") 
+      (:p :class "doc-name gf-name" "("
+          ,@(let ((fname (sb-mop:generic-function-name (fdefinition gf)))
+                  (lambda-list (sb-mop:generic-function-lambda-list (fdefinition gf))))
+                 (if (listp fname)
+                     (append
+                      (list (symbol-name (car fname))
+                             " ("
+                             (symbol-name (cadr fname))
+                             " "
+                             (butlast
+                              (mapcan (lambda (x)
+                                        (list (symbol-name x) " "))
+                                      (cdr lambda-list)))
+                             ") "
+                             (symbol-name (car lambda-list))))
+                     (butlast
+                      (mapcan (lambda (x)
+                                (list (symbol-name x) " "))
+                              (cons fname lambda-list)))))
           ")")
       (:p :class "doc-documentation gf-documentation" ,(documentation gf 'function)))))
 
