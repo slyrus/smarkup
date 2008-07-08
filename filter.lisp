@@ -116,8 +116,8 @@
       (:p :class "doc-name class-name" ,(symbol-name class))
       (:p :class "doc-documentation class-documentation" ,(documentation class 'type)))))
 
+#+sbcl
 (defmethod filter-gf ((filter (eql :lisp)) (car (eql :generic-function)) list)
-  (declare (optimize (debug 3)))
   (let ((gf (cadr list)))
     `((:div :class "doc generic-function")
       (:p :class "doc-type" "[GENERIC FUNCTION]") 
@@ -142,6 +142,34 @@
                               (cons fname lambda-list)))))
           ")")
       (:p :class "doc-documentation gf-documentation" ,(documentation gf 'function)))))
+
+#+sbcl
+(defmethod filter-gf ((filter (eql :lisp)) (car (eql :function)) list)
+  (declare (optimize (debug 3)))
+  (let ((fun (cadr list)))
+    `((:div :class "doc function")
+      (:p :class "doc-type" "[FUNCTION]") 
+      (:p :class "doc-name fn-name" "("
+          ,@(let ((fname (nth-value 2 (function-lambda-expression (fdefinition fun))))
+                  (lambda-list (sb-introspect:function-arglist (fdefinition fun))))
+                 (if (listp fname)
+                     (append
+                      (list (symbol-name (car fname))
+                             " ("
+                             (symbol-name (cadr fname))
+                             " "
+                             (butlast
+                              (mapcan (lambda (x)
+                                        (list (symbol-name x) " "))
+                                      (cdr lambda-list)))
+                             ") "
+                             (symbol-name (car lambda-list))))
+                     (butlast
+                      (mapcan (lambda (x)
+                                (list (symbol-name x) " "))
+                              (cons fname lambda-list)))))
+          ")")
+      (:p :class "doc-documentation fn-documentation" ,(documentation fun 'function)))))
 
 ;;;
 ;;; markup-metadata filter. sets various special variables with
