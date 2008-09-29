@@ -270,7 +270,10 @@
             ,(format nil "[~A]" refnum))))))
 
 (defmethod process-element ((document-type (eql :xhtml)) (tag (eql :image)) attrs body)
-  (call-next-method))
+  (call-next-method :xhtml
+                    :img
+                    `((:src . ,(car body)))
+                    nil))
 
 (defmethod process-element ((document-type (eql :xhtml)) (tag (eql :bibliography)) attrs body)
   (call-next-method :xhtml
