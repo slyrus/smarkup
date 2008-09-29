@@ -5,6 +5,9 @@
 (defpackage #:smarkup-system (:use #:cl #:asdf #:ch-asdf))
 (in-package #:smarkup-system)
 
+#+sbcl
+ (require :sb-introspect)
+
 (defsystem :smarkup
   :name "smarkup"
   :author "Cyrus Harmon <cyrus@bobobeach.com>"
