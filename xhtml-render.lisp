@@ -284,7 +284,7 @@
                        `(:item ,(citation-string cite)))))
 
 (defmethod process-element ((document-type (eql :xhtml)) (tag (eql #\Newline)) attrs body)
-  (call-next-method :xhtml :hr nil nil))
+  (call-next-method :xhtml :br nil nil))
 
 (defmethod render-as ((type (eql :xhtml)) sexp file)
   (let ((*document-render-type* :xhtml))
