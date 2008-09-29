@@ -220,8 +220,8 @@
   (when pdf:*page* (typeset:finalize-page pdf:*page*)))
 
 (defmethod render-as ((type (eql :cl-pdf)) sexp file)
-  (setq typeset::*left-hyphen-minimum* 999
-        typeset::*right-hyphen-minimum* 999)
+  (setq cl-typesetting-hyphen::*left-hyphen-minimum* 999
+        cl-typesetting-hyphen::*right-hyphen-minimum* 999)
   (tt:with-document ()
     (when *pdf-title-page-function*
       (funcall *pdf-title-page-function*))
