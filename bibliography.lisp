@@ -21,3 +21,11 @@
               (gethash "number" cite-hash)
               (gethash "year" cite-hash)))))
 
+(defun get-cite-keys ()
+  (mapcar #'car
+          (sort
+           (loop for k being the hash-keys of *cite-order* using (hash-value v)
+              collect (cons k v))
+           #'<
+           :key #'cdr)))
+
