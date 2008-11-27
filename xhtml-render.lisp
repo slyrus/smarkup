@@ -306,11 +306,14 @@
                            (:head
                             ,(when *document-title*
                                    `(:title ,@*document-title*))
-                            ,(when *html-css-stylesheet-url*
-                                   (if *html-css-stylesheet-inline*
-                                       `(:style ,(ch-util:contents-of-file *html-css-stylesheet-url*))
-                                       `(:link :rel "stylesheet" :type "text/css"
-                                               :href ,*html-css-stylesheet-url*))))
+                            ,(loop for stylesheet-spec in *html-css-stylesheet-url*
+                                collect
+                                  (destructuring-bind (sheet &optional inline)
+                                      stylesheet-spec
+                                    (if inline
+                                        `(:style ,(ch-util:contents-of-file sheet))
+                                        `(:link :rel "stylesheet" :type "text/css"
+                                                :href ,sheet)))))
                            (:body ,@sexp))))))))
 
 (defun render-sexp-to-string (sexp)

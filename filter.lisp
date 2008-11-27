@@ -251,12 +251,10 @@
   (filter-gf filter (cadr list) (cdr list))
   nil)
 
-(defparameter *html-css-stylesheet-url* "style.css")
-(defparameter *html-css-stylesheet-inline* nil)
+(defparameter *html-css-stylesheet-url* nil)
 
 (defmethod filter-gf ((filter (eql :html-metadata)) (car (eql :htmlcss)) list)
-  (setf *html-css-stylesheet-url* (cadr list))
-  (setf *html-css-stylesheet-inline* (caddr list))
+  (push (cdr list) *html-css-stylesheet-url*)
   (call-next-method))
 
 (defmethod filter-gf ((filter (eql :html-metadata)) (car (eql :html-metadata)) list)
