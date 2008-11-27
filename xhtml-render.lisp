@@ -4,23 +4,6 @@
 (eval-when (:compile-toplevel)
   #.(enable-quote-reader-macro))
 
-(defparameter *xhtml-header*
-  #q{<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE html 
-     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
-     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">})
-
-#+nil
-`((:bibcite      . html-citation)
-  (:bibliography . html-bibliography)
-  (:image        . htmlize-image)
-  (:url          . htmlize-url)
-  (:href         . htmlize-href)
-  (:h1           . htmlize-header)
-  (:h2           . htmlize-header)
-  (:h3           . htmlize-header)
-  (:h4           . htmlize-header))
-
 (defparameter *html-element-transformation*
   `((:example      . :pre)
     (:sidebarhead  . (:div :class "sidebarhead"))
@@ -37,10 +20,13 @@
     (:subfigure    . (:div :class "subfigure"))
     (:newline     . :br)))
 
+(defparameter *xhtml-header*
+  #q{<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html 
+     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">})
+
 (defparameter *stream* nil)
-
-;;; TODO! Fix html-citation and add the other html tag filter functions!
-
 
 (defun html-citation (tag body)
   (declare (ignore tag))
@@ -221,7 +207,6 @@
   (render-text *stream* tag))
 
 (defmethod process-element ((document-type (eql :xhtml)) tag attrs body)
-
   (let ((xfrm (cdr (assoc tag *html-element-transformation*))))
     (when xfrm
       (cond ((atom xfrm)
@@ -233,7 +218,6 @@
                                     by #'cddr
                                     collect (cons x y))
                                  attrs))))))
-  
   (when tag
     (if body
         (progn
@@ -274,13 +258,30 @@
                     :li attrs body))
 
 (defmethod process-element ((document-type (eql :xhtml)) (tag (eql :bibcite)) attrs body)
-  (call-next-method))
+  (call-next-method
+   :xhtml
+   :span
+   nil
+   (loop for ref in body
+      collect
+        (let ((refnum (get-bib-order ref)))
+          `((:a :href
+                ,(format nil "#ref~A" refnum))
+            ,(format nil "[~A]" refnum))))))
 
 (defmethod process-element ((document-type (eql :xhtml)) (tag (eql :image)) attrs body)
-  (call-next-method))
+  (call-next-method :xhtml
+                    :img
+                    `((:src . ,(car body)))
+                    nil))
 
 (defmethod process-element ((document-type (eql :xhtml)) (tag (eql :bibliography)) attrs body)
-  (call-next-method))
+  (call-next-method :xhtml
+                    :list
+                    nil
+                    (loop for cite in (smarkup::get-cite-keys)
+                       collect
+                       `(:item ,(citation-string cite)))))
 
 (defmethod process-element ((document-type (eql :xhtml)) (tag (eql :style-inline)) attrs body)
   (princ "<style>" *stream*)
@@ -290,7 +291,7 @@
   (terpri *stream*))
 
 (defmethod process-element ((document-type (eql :xhtml)) (tag (eql #\Newline)) attrs body)
-  (call-next-method :hr))
+  (call-next-method :xhtml :br nil nil))
 
 (defmethod render-as ((type (eql :xhtml)) sexp file)
   (let ((*document-render-type* :xhtml))
