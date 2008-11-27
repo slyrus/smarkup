@@ -26,7 +26,7 @@
     (:sidebarhead  . (:div :class "sidebarhead"))
     (:sidebar      . (:div :class "sidebar"))
     (:note         . (:div :class "note"))
-    (:title        . (:div :class "title"))
+    #+nil (:title        . (:div :class "title"))
     (:note-ref     . :sup)
     (:bullets      . :ul)
     (:list         . :ul)
@@ -282,6 +282,13 @@
 (defmethod process-element ((document-type (eql :xhtml)) (tag (eql :bibliography)) attrs body)
   (call-next-method))
 
+(defmethod process-element ((document-type (eql :xhtml)) (tag (eql :style-inline)) attrs body)
+  (princ "<style>" *stream*)
+  (terpri *stream*)
+  (princ (car body) *stream*)
+  (princ "</style>" *stream*)
+  (terpri *stream*))
+
 (defmethod process-element ((document-type (eql :xhtml)) (tag (eql #\Newline)) attrs body)
   (call-next-method :hr))
 
@@ -300,8 +307,10 @@
                             ,(when *document-title*
                                    `(:title ,@*document-title*))
                             ,(when *html-css-stylesheet-url*
-                                   `((:link :rel "stylesheet" :type "text/css"
-                                            :href ,*html-css-stylesheet-url*))))
+                                   (if *html-css-stylesheet-inline*
+                                       `(:style ,(ch-util:contents-of-file *html-css-stylesheet-url*))
+                                       `(:link :rel "stylesheet" :type "text/css"
+                                               :href ,*html-css-stylesheet-url*))))
                            (:body ,@sexp))))))))
 
 (defun render-sexp-to-string (sexp)
