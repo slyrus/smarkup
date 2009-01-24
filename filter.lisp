@@ -151,7 +151,7 @@
       (:p :class "doc-type" "[FUNCTION]") 
       (:p :class "doc-name fn-name" "("
           ,@(let ((fname (nth-value 2 (function-lambda-expression (fdefinition fun))))
-                  (lambda-list (sb-introspect:function-arglist (fdefinition fun))))
+                  (lambda-list (sb-introspect:function-lambda-list (fdefinition fun))))
                  (if (listp fname)
                      (append
                       (list (symbol-name (car fname))
@@ -254,7 +254,7 @@
 (defparameter *html-css-stylesheet-url* nil)
 
 (defmethod filter-gf ((filter (eql :html-metadata)) (car (eql :htmlcss)) list)
-  (push (cdr list) *html-css-stylesheet-url*)
+  (pushnew (cdr list) *html-css-stylesheet-url* :test 'equal)
   (call-next-method))
 
 (defmethod filter-gf ((filter (eql :html-metadata)) (car (eql :html-metadata)) list)
