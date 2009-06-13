@@ -799,7 +799,8 @@
       (bibtex-runtime:*bib-database* *bibtex-database*)
       (bibtex-runtime:*bib-files* nil)
       (bibtex-runtime:*bbl-output* stream))
-  (funcall style-function)))
+    (bibtex-runtime::with-bbl-output (stream)
+      (funcall style-function))))
 
 (defmethod emit-latex-gf (stream (type (eql :table-of-contents)) children &key (newline t))
   (declare (ignore newline))
