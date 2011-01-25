@@ -11,17 +11,17 @@
 (in-package :smarkup)
 
 (defmacro run-program (&rest args)
-  #+sbcl `(sb-ext::run-program ,@args))
+  #+sbcl `(sb-ext:run-program ,@args))
 
 (defun app-open (&rest args)
   #+darwin (run-program "/usr/bin/open"
-                        (mapcar #'(lambda (x) (if (pathnamep x) (unix-name x) x))
+                        (mapcar #'(lambda (x) (if (pathnamep x) (namestring x) x))
                                 args)))
 
 (defun open-in-web-browser (&rest args)
   #+darwin
   (apply #'app-open (list* "-a" "/Applications/Safari.app"
-                           (mapcar #'(lambda (x) (if (pathnamep x) (unix-name x) x)) args))))
+                           (mapcar #'(lambda (x) (if (pathnamep x) (namestring x) x)) args))))
 
 (defmacro with-current-directory (dir &body body)
   `(unwind-protect (progn
@@ -45,9 +45,9 @@
 
 (defmethod perform ((op compile-op) (c filtered-object))
   (call-next-method)
-  (setf (symbol-value (ch-asdf::object-symbol c))
+  (setf (symbol-value (ch-asdf:object-symbol c))
         (apply-filters
-         (symbol-value (ch-asdf::object-symbol c))
+         (symbol-value (ch-asdf:object-symbol c))
          (object-filters c))))
 
 (defmethod component-relative-pathname ((component filtered-object)))
@@ -58,10 +58,10 @@
 
 (defclass object-latex-file (ch-asdf:object-from-variable generated-file) ())
 
-(defmethod perform ((op ch-asdf::generate-op) (c object-latex-file))
+(defmethod perform ((op ch-asdf:generate-op) (c object-latex-file))
   (call-next-method)
   (render-as :latex
-             (symbol-value (ch-asdf::object-symbol c))
+             (symbol-value (ch-asdf:object-symbol c))
              (component-pathname c)))
 
 (defmacro with-component-directory ((component) &body body)
@@ -73,7 +73,7 @@
 
 (defmethod perform ((operation compile-op) (c object-latex-file))
   (with-component-directory (c)
-    (let ((unix-path (ch-asdf:unix-name (component-pathname c))))
+    (let ((unix-path (namestring (component-pathname c))))
       (run-program *pdflatex-program*
                             (list unix-path))
       ;; we have to do this twice to get the references right!
@@ -81,14 +81,14 @@
       (run-program *pdflatex-program*
                             (list unix-path)))))
 
-(defmethod operation-done-p ((o ch-asdf::generate-op) (c object-latex-file))
+(defmethod operation-done-p ((o ch-asdf:generate-op) (c object-latex-file))
   (let ((on-disk-time
          (file-write-date (component-pathname c)))
-        (obj (asdf::find-component
-              (asdf::component-parent c)
-              (asdf::coerce-name (ch-asdf::object-input-object c)))))
+        (obj (asdf:find-component
+              (asdf:component-parent c)
+              (asdf:coerce-name (ch-asdf:object-input-object c)))))
     
-    (let ((obj-date (asdf::component-property obj 'ch-asdf::last-loaded)))
+    (let ((obj-date (asdf:component-property obj 'ch-asdf:last-loaded)))
       (and on-disk-time
            obj-date
            (>= on-disk-time obj-date)))))
@@ -97,23 +97,23 @@
 
 (defmethod perform ((op compile-op) (c object-xhtml-file))
   (call-next-method)
-  (let ((sexp (symbol-value (ch-asdf::object-symbol c)))
+  (let ((sexp (symbol-value (ch-asdf:object-symbol c)))
         (file (component-pathname c)))
     (render-as :xhtml sexp file)))
 
 (defmethod perform ((op load-op) (c object-xhtml-file))
   (call-next-method)
-  (open-in-web-browser (ch-asdf:unix-name (component-pathname c))))
+  (open-in-web-browser (namestring (component-pathname c))))
 
 (defclass object-cl-pdf-file (ch-asdf:object-from-variable pdf-file) ())
 
 (defmethod perform ((op compile-op) (c object-cl-pdf-file))
   (call-next-method)
-  (let ((sexp (symbol-value (ch-asdf::object-symbol c)))
+  (let ((sexp (symbol-value (ch-asdf:object-symbol c)))
         (file (component-pathname c)))
     (render-as :cl-pdf sexp file)))
 
 (defmethod perform ((op load-op) (c object-cl-pdf-file))
   (call-next-method)
-  (app-open (ch-asdf:unix-name (component-pathname c))))
+  (app-open (namestring (component-pathname c))))
 

@@ -8,5 +8,7 @@
            #:object-latex-file
            #:pdf-file
            #:object-xhtml-file
-           #:object-cl-pdf-file))
+           #:object-cl-pdf-file
+           
+           #:smarkup-object-from-file))
 
