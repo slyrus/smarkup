@@ -7,7 +7,7 @@
 
 #+sbcl (require :sb-introspect)
 
-(defsystem :smarkup
+(asdf:defsystem :smarkup
   :name "smarkup"
   :author "Cyrus Harmon <cyrus@bobobeach.com>"
   :licence "BSD"
@@ -15,16 +15,22 @@
                  (vers (merge-pathnames "version.lisp-expr" *load-truename*))
                (read vers))
   :description "S-Expression-based Markup Utilities"
-  :depends-on (:ch-asdf :bibtex :alexandria :puri :cl-fad :cl-typesetting)
+  :depends-on (:alexandria
+               :puri
+               :cl-fad
+               :named-readtables
+               :ch-asdf
+               :bibtex
+               :cl-typesetting)
   :components
   ((:cl-source-file "defpackage")
    (:cl-source-file "smarkup" :depends-on (:defpackage))
-   (:cl-source-file "smarkup-asdf" :depends-on (:defpackage :smarkup))
+   (:cl-source-file "quote-reader-macro" :depends-on (:defpackage))
+   (:cl-source-file "smarkup-asdf" :depends-on (:defpackage :smarkup :quote-reader-macro))
    (:cl-source-file "parameters" :depends-on (:defpackage))
    (:cl-source-file "bibliography" :depends-on (:defpackage :parameters))
    (:cl-source-file "filter"
                     :depends-on (:defpackage :parameters :bibliography))
-   (:cl-source-file "quote-reader-macro" :depends-on (:defpackage))
    (:cl-source-file "xhtml-render"
                     :depends-on
                     (:defpackage :smarkup :filter :quote-reader-macro))

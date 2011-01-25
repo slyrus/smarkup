@@ -1,9 +1,6 @@
 
 (in-package :smarkup)
 
-(eval-when (:compile-toplevel)
-  #.(enable-quote-reader-macro))
-
 (defparameter *html-element-transformation*
   `((:example      . :pre)
     (:sidebarhead  . (:div :class "sidebarhead"))

@@ -31,6 +31,15 @@
                        ,@body))
      #+sbcl (sb-posix:chdir *default-pathname-defaults*)))
 
+;;;
+(defclass smarkup-object-from-file (ch-asdf:object-from-file) ())
+
+(defmethod perform :around ((o load-op)
+                            (c smarkup-object-from-file))
+  (let ((*readtable* (named-readtables:find-readtable 'quote-reader)))
+    (call-next-method)))
+
+;;;
 (defclass filtered-object (ch-asdf:object-from-variable)
   ((filters :accessor object-filters :initarg :filters)))
 
