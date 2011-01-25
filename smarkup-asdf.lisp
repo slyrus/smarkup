@@ -10,6 +10,27 @@
 
 (in-package :smarkup)
 
+(defmacro run-program (&rest args)
+  #+sbcl `(sb-ext::run-program ,@args))
+
+(defun app-open (&rest args)
+  #+darwin (run-program "/usr/bin/open"
+                        (mapcar #'(lambda (x) (if (pathnamep x) (unix-name x) x))
+                                args)))
+
+(defun open-in-web-browser (&rest args)
+  #+darwin
+  (apply #'app-open (list* "-a" "/Applications/Safari.app"
+                           (mapcar #'(lambda (x) (if (pathnamep x) (unix-name x) x)) args))))
+
+(defmacro with-current-directory (dir &body body)
+  `(unwind-protect (progn
+		     #+sbcl
+                     (sb-posix:chdir ,dir)
+                     (let ((*default-pathname-defaults* ,dir))
+                       ,@body))
+     #+sbcl (sb-posix:chdir *default-pathname-defaults*)))
+
 (defclass filtered-object (ch-asdf:object-from-variable)
   ((filters :accessor object-filters :initarg :filters)))
 
@@ -35,7 +56,7 @@
              (component-pathname c)))
 
 (defmacro with-component-directory ((component) &body body)
-  `(ch-util::with-current-directory
+  `(with-current-directory
        (make-pathname
         :directory (pathname-directory
                     (component-pathname ,component)))
@@ -43,12 +64,12 @@
 
 (defmethod perform ((operation compile-op) (c object-latex-file))
   (with-component-directory (c)
-    (let ((unix-path (ch-util::unix-name (component-pathname c))))
-      (ch-util::run-program *pdflatex-program*
+    (let ((unix-path (ch-asdf:unix-name (component-pathname c))))
+      (run-program *pdflatex-program*
                             (list unix-path))
       ;; we have to do this twice to get the references right!
       ;; maybe 3x?
-      (ch-util::run-program *pdflatex-program*
+      (run-program *pdflatex-program*
                             (list unix-path)))))
 
 (defmethod operation-done-p ((o ch-asdf::generate-op) (c object-latex-file))
@@ -73,7 +94,7 @@
 
 (defmethod perform ((op load-op) (c object-xhtml-file))
   (call-next-method)
-  (ch-util::firefox-open (ch-util::unix-name (component-pathname c))))
+  (open-in-web-browser (ch-asdf:unix-name (component-pathname c))))
 
 (defclass object-cl-pdf-file (ch-asdf:object-from-variable pdf-file) ())
 
@@ -85,5 +106,5 @@
 
 (defmethod perform ((op load-op) (c object-cl-pdf-file))
   (call-next-method)
-  (ch-util::app-open (unix-name (component-pathname c))))
+  (app-open (ch-asdf:unix-name (component-pathname c))))
 

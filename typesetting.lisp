@@ -105,15 +105,6 @@
 (defparameter *default-h4-style*
   '(:font "Helvetica-Bold" :font-size 10 :bottom-margin 3 :top-margin 3))
 
-(defmacro with-keyword-args ((&rest args) list &body body)
-  `(destructuring-bind ((&key ,@args) (&rest ,list))
-       (apply #'ch-util::remove-keywordish-args
-              (mapcar #'ch-util::keywordicate
-                      (mapcar #'ch-util::keyword-arg-name
-                              ',args))
-              ,list)
-     ,@body))
-
 (defparameter *item-decorator*
   (format nil "~A " (code-char #x81)))
 

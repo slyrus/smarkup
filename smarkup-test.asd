@@ -7,7 +7,7 @@
                  (vers (merge-pathnames "version.lisp-expr" *load-truename*))
                (read vers))
   :description "S-Expression-based Markup Utilities"
-  :depends-on (:ch-asdf :ch-util :bibtex :smarkup)
+  :depends-on (:ch-asdf :bibtex :smarkup)
   :components
   ((:module
     :test

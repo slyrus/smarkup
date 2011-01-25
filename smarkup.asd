@@ -5,8 +5,7 @@
 (defpackage #:smarkup-system (:use #:cl #:asdf #:ch-asdf))
 (in-package #:smarkup-system)
 
-#+sbcl
- (require :sb-introspect)
+#+sbcl (require :sb-introspect)
 
 (defsystem :smarkup
   :name "smarkup"
@@ -16,7 +15,7 @@
                  (vers (merge-pathnames "version.lisp-expr" *load-truename*))
                (read vers))
   :description "S-Expression-based Markup Utilities"
-  :depends-on (:ch-asdf :ch-util :bibtex :puri :cl-fad :cl-typesetting)
+  :depends-on (:ch-asdf :bibtex :alexandria :puri :cl-fad :cl-typesetting)
   :components
   ((:cl-source-file "defpackage")
    (:cl-source-file "smarkup" :depends-on (:defpackage))

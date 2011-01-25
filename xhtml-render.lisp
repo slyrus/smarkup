@@ -119,10 +119,17 @@
 
 
 
+
 (eval-when (:compile-toplevel :load-toplevel :execute)
 
+  (defun make-hash-table-from-alist (alist &key (test #'eql))
+    (let ((h (make-hash-table :test test)))
+      (loop for (x . y) in alist
+         do (setf (gethash x h) y))
+      h))
+
   (defparameter *xml-char-map*
-    (ch-util::make-hash-table-from-alist
+    (make-hash-table-from-alist
      '((#\< . "&lt;")
        (#\> . "&gt;")
        (#\& . "&amp;")
@@ -279,7 +286,7 @@
   (call-next-method :xhtml
                     :list
                     nil
-                    (loop for cite in (smarkup::get-cite-keys)
+                    (loop for cite in (get-cite-keys)
                        collect
                        `(:item ,(citation-string cite)))))
 
@@ -313,7 +320,8 @@
                                        (destructuring-bind (sheet &optional inline)
                                            stylesheet-spec
                                          (if inline
-                                             `(:style-inline ,(ch-util:contents-of-file sheet))
+                                             `(:style-inline
+                                               ,(alexandria:read-file-into-byte-vector sheet))
                                              `(:link :rel "stylesheet" :type "text/css"
                                                      :href ,sheet))))))
                            (:body ,@sexp))))))))
@@ -325,4 +333,5 @@
 
 (defun render-string (str)
   (with-output-to-string (string)
-    (smarkup::render-text string str)))
+    (render-text string str)))
+

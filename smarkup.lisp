@@ -8,6 +8,41 @@
 
 (in-package #:smarkup)
 
+(defun keywordicate (x)
+  (cond ((keywordp x) x)
+        (t (intern (string-upcase x) 'keyword))))
+
+(defun remove-keywordish-args (keywords &rest args)
+  (let ((keys))
+    (let ((non-keys
+           (loop for (x y) on args
+              with skip = nil
+              append (if skip
+                         (setf skip nil)
+                         (if (member x keywords)
+                             (progn
+                               (setf skip t)
+                               (pushnew (cons x y) keys)
+                               nil)
+                             (list x))))))
+      (list (mapcan #'(lambda (x)
+                        (list (car x) (cdr x)))
+                    (nreverse keys))
+            non-keys))))
+
+(defun keyword-arg-name (key)
+  (cond ((atom key)  key)
+        ((listp key) (car key))))
+
+(defmacro with-keyword-args (((&rest args) rest) list &body body)
+  `(destructuring-bind ((&key ,@args) (&rest ,rest))
+       (apply #'remove-keywordish-args
+              (mapcar #'keywordicate
+                      (mapcar #'keyword-arg-name
+                              ',args))
+              ,list)
+     ,@body))
+
 (defgeneric render-as (type sexp file))
 
 (defun remove-from-plist (plist &rest keys)

@@ -406,10 +406,10 @@
 (defparameter *default-number-sections* t)
 
 (defmethod emit-latex-gf (stream (type (eql :h1)) children &key (newline t))
-  (ch-util::with-keyword-args ((label
-                                (clearpage *h1-default-clearpage*)
-                                (no-number (not *default-number-sections*)))
-                               children)
+  (with-keyword-args ((label
+                       (clearpage *h1-default-clearpage*)
+                       (no-number (not *default-number-sections*)))
+                      children)
       children
     (when (and clearpage (not (eql clearpage :nil)))
       (emit-latex-command stream "clearpage" nil :newline t))
@@ -425,7 +425,7 @@
 
 
 (defmethod emit-latex-header (stream type children &key (newline t))
-  (ch-util::with-keyword-args ((label
+  (with-keyword-args ((label
                                 (clearpage *h2-default-clearpage*)
                                 (no-number (not *default-number-sections*))) children)
       children
@@ -444,7 +444,7 @@
 
   (emit-latex-header stream type children :newline newline)
 
-  #+nil (ch-util::with-keyword-args ((label) children)
+  #+nil (with-keyword-args ((label) children)
             children
           (when label
             (emit-latex-command stream 'label label :newline newline))))
@@ -467,7 +467,7 @@
   (emit-latex-command stream "cite" (format nil "~{~A~^, ~}" children) :initial-freshline nil :newline newline))
 
 (defmethod emit-latex-gf (stream (type (eql :caption)) children &key (newline nil))
-  (ch-util::with-keyword-args (((figure-label t)) children)
+  (with-keyword-args (((figure-label t)) children)
       children
     (let ((label (if figure-label
                      "caption"
@@ -508,7 +508,7 @@
                                       (convert-png-to-eps nil)
                                       &allow-other-keys)
       children
-    (let ((image-file (ch-util:unix-name image-pathname)))
+    (let ((image-file (ch-asdf:unix-name image-pathname)))
       (when (and copy *image-copy-path*)
         (let ((new-file (merge-pathnames (make-pathname :name (pathname-name image-file)
                                                         :type (pathname-type image-file)
@@ -548,7 +548,7 @@
                           (newline t)
                           (placement *default-figure-placement*))
   (declare (ignorable newline))
-  (ch-util::with-keyword-args (((placement placement)
+  (with-keyword-args (((placement placement)
                                 (increment-counter t)
                                 (subfigure-start 0)
                                 label) children)
@@ -579,7 +579,7 @@
                           (newline t)
                           (placement *default-figure-placement*))
   (declare (ignorable newline))
-  (ch-util::with-keyword-args (((placement placement) label) children)
+  (with-keyword-args (((placement placement) label) children)
       children
     (emit-latex-command-3 stream "begin" "figure*" :options placement :newline nil)
     (dolist (p children)
@@ -589,7 +589,7 @@
     (emit-latex-command stream "end" "figure*")))
 
 (defmethod emit-latex-gf (stream (type (eql :subfigure)) children &key (newline nil))
-  (ch-util::with-keyword-args ((caption (increment-counter t)) children)
+  (with-keyword-args ((caption (increment-counter t)) children)
       children
     (when caption
       (setf caption (emit-children-to-string caption)))
@@ -620,7 +620,7 @@
 ;;; "scicite" "pslatex" "times" "epsfig" "graphs" "newcent"
    
 (defun include-contents-of-file-file (stream file)
-  (emit-latex stream (ch-util::contents-of-file file)))
+  (emit-latex stream (alexandria:read-file-into-byte-vector file)))
 
 (defun latex-document-format (stream)
   (dolist (package *latex-packages*)
@@ -856,7 +856,7 @@
 (defmethod emit-latex-gf (stream (type (eql :table)) children &key newline)
   (destructuring-bind ((&key cols
                              top-line) (&rest children))
-      (apply #'ch-util::remove-keywordish-args '(:cols
+      (apply #'remove-keywordish-args '(:cols
                                                  :top-line) children)
     (emit-latex-command-3 stream "begin" "tabular" :arg1 cols)
     (when top-line
@@ -880,13 +880,13 @@
                              (first-heading heading)
                              (first-caption caption)
                              (font-size "small")) (&rest children))
-      (apply #'ch-util::remove-keywordish-args '(:cols
-                                                 :top-line
-                                                 :heading
-                                                 :caption
-                                                 :first-heading
-                                                 :first-caption
-                                                 :font-size) children)
+      (apply #'remove-keywordish-args '(:cols
+                                        :top-line
+                                        :heading
+                                        :caption
+                                        :first-heading
+                                        :first-caption
+                                        :font-size) children)
     
     (single-space stream)
     (with-latex-block font-size
@@ -931,7 +931,7 @@
 
 (defmethod emit-latex-gf (stream (type (eql :table-row)) children &key (newline t))
   (destructuring-bind ((&key multicolumn (spec "|c|")) (&rest children))
-      (apply #'ch-util::remove-keywordish-args '(:multicolumn :spec) children)
+      (apply #'remove-keywordish-args '(:multicolumn :spec) children)
     (if multicolumn
         (progn (apply #'emit-latex-command-3 stream "multicolumn" multicolumn
                       :arg1 spec
@@ -952,7 +952,7 @@
 ;;;
 ;;; beamer stuff
 (defmethod emit-latex-gf (stream (type (eql :slide)) children &key (newline t))
-  (ch-util::with-keyword-args ((slide-title) children)
+  (with-keyword-args ((slide-title) children)
       children
     (emit-latex-command-2 stream "frame")
     (format stream "{")
@@ -981,20 +981,20 @@
   (loop for c in children do (emit-latex stream c)))
 
 (defmethod emit-latex-gf (stream (type (eql :colorbox)) children &key (newline nil))
-  (ch-util::with-keyword-args (((color "white")) children)
+  (with-keyword-args (((color "white")) children)
       children
     (emit-latex-command-6 stream "colorbox" children :arg color :newline newline)))
 
 ;;; columns for beamer
 (defmethod emit-latex-gf (stream (type (eql :columns)) children &key (newline t))
-  (ch-util::with-keyword-args ((format) children)
+  (with-keyword-args ((format) children)
       children
     (emit-latex-command-5 stream "begin" :arg1 "columns" :arg2 format :newline newline)
     (loop for c in children do (emit-latex stream c))
     (emit-latex-command stream "end" '("columns") :newline newline)))
 
 (defmethod emit-latex-gf (stream (type (eql :column)) children &key (newline t))
-  (ch-util::with-keyword-args ((width) children)
+  (with-keyword-args ((width) children)
       children
     (emit-latex-command-2 stream "begin" :arg1 "column" :arg2 (format nil "~A\\textwidth" width) :newline newline)
     (loop for c in children do (emit-latex stream c))
@@ -1004,7 +1004,7 @@
 
 
 (defmethod emit-latex-gf (stream (type (eql :minipage)) children &key (newline t))
-  (ch-util::with-keyword-args (((width "0.5")) children)
+  (with-keyword-args (((width "0.5")) children)
       children
     (emit-latex-command-5 stream "begin" :arg1 "minipage" :arg2 "t"
                           :arg3 (format nil "~A\\linewidth" width) :newline newline)
