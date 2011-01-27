@@ -508,7 +508,7 @@
                                       (convert-png-to-eps nil)
                                       &allow-other-keys)
       children
-    (let ((image-file (ch-asdf:unix-name image-pathname)))
+    (let ((image-file (namestring image-pathname)))
       (when (and copy *image-copy-path*)
         (let ((new-file (merge-pathnames (make-pathname :name (pathname-name image-file)
                                                         :type (pathname-type image-file)
