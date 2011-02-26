@@ -1,10 +1,4 @@
 
-
-(asdf:operate 'asdf:load-op "ch-asdf")
-
-(defpackage #:smarkup-system (:use #:cl #:asdf #:ch-asdf))
-(in-package #:smarkup-system)
-
 #+sbcl (require :sb-introspect)
 
 (asdf:defsystem :smarkup
@@ -16,10 +10,9 @@
                (read vers))
   :description "S-Expression-based Markup Utilities"
   :depends-on (:alexandria
-               :puri
                :cl-fad
                :named-readtables
-               :ch-asdf
+               :asdf-objects
                :bibtex
                :cl-typesetting)
   :components

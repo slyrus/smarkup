@@ -180,7 +180,13 @@
               collect (get-bib-order ref)))))
 
 (defmethod process-element ((document-type (eql :pdf)) (tag (eql :image)) attrs body)
-  (tt:image :file (car body) :dx 100 :dy 100))
+  (let* ((file (car body))
+         (type (pathname-type file)))
+    (let ((type-arg
+           (cond
+             ((equal type "png") :png))))
+      (apply #'tt:image :file file :dx 100 :dy 100
+             (when type-arg `(:image-type ,type-arg))))))
 
 (defmethod process-element ((document-type (eql :pdf)) (tag (eql :bibliography)) attrs body)
   (process-element document-type :h1 nil '("References"))

@@ -32,7 +32,7 @@
      #+sbcl (sb-posix:chdir *default-pathname-defaults*)))
 
 ;;;
-(defclass smarkup-object-from-file (ch-asdf:object-from-file) ())
+(defclass smarkup-object-from-file (object-from-file) ())
 
 (defmethod perform :around ((o load-op)
                             (c smarkup-object-from-file))
@@ -40,14 +40,14 @@
     (call-next-method)))
 
 ;;;
-(defclass filtered-object (ch-asdf:object-from-variable)
+(defclass filtered-object (object-from-variable)
   ((filters :accessor object-filters :initarg :filters)))
 
 (defmethod perform ((op compile-op) (c filtered-object))
   (call-next-method)
-  (setf (symbol-value (ch-asdf:object-symbol c))
+  (setf (symbol-value (object-symbol c))
         (apply-filters
-         (symbol-value (ch-asdf:object-symbol c))
+         (symbol-value (object-symbol c))
          (object-filters c))))
 
 (defmethod component-relative-pathname ((component filtered-object)))
@@ -56,12 +56,12 @@
 
 (defparameter *pdflatex-program* "pdflatex")
 
-(defclass object-latex-file (ch-asdf:object-from-variable generated-file) ())
+(defclass object-latex-file (object-from-variable generated-file) ())
 
-(defmethod perform ((op ch-asdf:generate-op) (c object-latex-file))
+(defmethod perform ((op generate-op) (c object-latex-file))
   (call-next-method)
   (render-as :latex
-             (symbol-value (ch-asdf:object-symbol c))
+             (symbol-value (object-symbol c))
              (component-pathname c)))
 
 (defmacro with-component-directory ((component) &body body)
@@ -81,23 +81,23 @@
       (run-program *pdflatex-program*
                             (list unix-path)))))
 
-(defmethod operation-done-p ((o ch-asdf:generate-op) (c object-latex-file))
+(defmethod operation-done-p ((o generate-op) (c object-latex-file))
   (let ((on-disk-time
          (file-write-date (component-pathname c)))
         (obj (asdf:find-component
               (asdf:component-parent c)
-              (asdf:coerce-name (ch-asdf:object-input-object c)))))
+              (asdf:coerce-name (object-input-object c)))))
     
-    (let ((obj-date (asdf:component-property obj 'ch-asdf:last-loaded)))
+    (let ((obj-date (asdf:component-property obj 'last-loaded)))
       (and on-disk-time
            obj-date
            (>= on-disk-time obj-date)))))
 
-(defclass object-xhtml-file (ch-asdf:object-from-variable source-file) ())
+(defclass object-xhtml-file (object-from-variable source-file) ())
 
 (defmethod perform ((op compile-op) (c object-xhtml-file))
   (call-next-method)
-  (let ((sexp (symbol-value (ch-asdf:object-symbol c)))
+  (let ((sexp (symbol-value (object-symbol c)))
         (file (component-pathname c)))
     (render-as :xhtml sexp file)))
 
@@ -105,15 +105,68 @@
   (call-next-method)
   (open-in-web-browser (namestring (component-pathname c))))
 
-(defclass object-cl-pdf-file (ch-asdf:object-from-variable pdf-file) ())
+
+(defclass pdf-file (generated-file) ())
+(defmethod source-file-type ((c pdf-file) (s module)) "pdf")
+
+(defmethod perform ((operation compile-op) (c pdf-file)))
+
+(defparameter *pdf-viewer*
+  #+linux "kpdf"
+  #+darwin "/Applications/Preview.app"
+  #-(or linux darwin) nil)
+
+(defun pdf-open (&rest args)
+  (when *pdf-viewer*
+    #+darwin
+    (apply #'app-open "-a" *pdf-viewer* (mapcar #'namestring args))
+    #-darwin
+    (run-program-asynchronously *pdf-viewer* 
+                                (mapcar #'(lambda (x)
+                                            (if (pathnamep x) (namestring x) x)) args))))
+
+(defmethod perform ((operation load-op) (c pdf-file))
+  (pdf-open (namestring (component-pathname c))))
+
+(defmethod operation-done-p ((o load-op) (c pdf-file))
+  nil)
+
+
+(defclass object-cl-pdf-file (object-from-variable pdf-file) ())
 
 (defmethod perform ((op compile-op) (c object-cl-pdf-file))
   (call-next-method)
-  (let ((sexp (symbol-value (ch-asdf:object-symbol c)))
+  (let ((sexp (symbol-value (object-symbol c)))
         (file (component-pathname c)))
     (render-as :cl-pdf sexp file)))
 
 (defmethod perform ((op load-op) (c object-cl-pdf-file))
   (call-next-method)
   (app-open (namestring (component-pathname c))))
+
+
+;;; css files
+
+(defclass css-file (static-file) ())
+(defmethod source-file-type ((c css-file) (s module)) "css")
+
+;;; xhtml files
+
+(defclass xhtml-file (html-file) ())
+(defmethod source-file-type ((c xhtml-file) (s module)) "xhtml")
+
+;;; tiff files
+
+(defclass tiff-file (static-file) ())
+(defmethod source-file-type ((c tiff-file) (s module)) "tiff")
+
+;;; jpeg files
+
+(defclass jpeg-file (static-file) ())
+(defmethod source-file-type ((c jpeg-file) (s module)) "jpg")
+
+;;; png files
+
+(defclass png-file (static-file) ())
+(defmethod source-file-type ((c png-file) (s module)) "png")
 

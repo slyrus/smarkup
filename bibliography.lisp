@@ -14,12 +14,12 @@
   (let ((cite-hash (gethash cite *bibtex-database*)))
     (when cite-hash
       (format nil "~@[~A. ~]~@[~A ~]~@[~A ~]~@[~A ~]~@[~A ~]~@[(~A).~]"
-              (gethash "author" cite-hash)
-              (gethash "title" cite-hash)
-              (gethash "journal" cite-hash)
-              (gethash "volume" cite-hash)
-              (gethash "number" cite-hash)
-              (gethash "year" cite-hash)))))
+              (bibtex-runtime::bib-entry-ref "author" cite-hash)
+              (bibtex-runtime::bib-entry-ref "title" cite-hash)
+              (bibtex-runtime::bib-entry-ref "journal" cite-hash)
+              (bibtex-runtime::bib-entry-ref "volume" cite-hash)
+              (bibtex-runtime::bib-entry-ref "number" cite-hash)
+              (bibtex-runtime::bib-entry-ref "year" cite-hash)))))
 
 (defun get-cite-keys ()
   (mapcar #'car

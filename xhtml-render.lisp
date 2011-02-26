@@ -1,6 +1,8 @@
 
 (in-package :smarkup)
 
+(named-readtables:in-readtable quote-reader)
+
 (defparameter *html-element-transformation*
   `((:example      . :pre)
     (:sidebarhead  . (:div :class "sidebarhead"))

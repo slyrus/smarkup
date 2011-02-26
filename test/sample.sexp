@@ -5,7 +5,9 @@
    (:title "A Sample Document")
    (:author "Cyrus L. Harmon")
    (:bibtex-database
-    "(\"asdf:/smarkup-test/test/sample-bib\")")
+    (#.(asdf:component-pathname 
+        (reduce #'asdf:find-component
+                '("smarkup-test" "test" "sample-bib")))))
    (:bibtex-style "Science"))
   (:html-metadata  (:htmlcss "simple.css")))
  

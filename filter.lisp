@@ -216,30 +216,14 @@
   (setf *cite-keys* nil)
   (setf *cite-order* (make-hash-table :test #'equalp))
   (setf *current-citation* 0)
-  (cond ((and (stringp (cadr list))
-              (eql (char (cadr list) 0) #\())
-         (let ((database-spec-list
-                (let ((*read-eval* nil))
-                  (read-from-string (cadr list)))))
-           (loop for database-spec in database-spec-list
-              do
-                (let ((database-uri (puri:parse-uri database-spec)))
-                  (cond ((eql (puri:uri-scheme database-uri) :asdf)
-                         (let ((database
-                                (asdf:component-pathname
-                                 (ch-asdf::asdf-lookup database-spec))))
-                           (let ((bibtex-runtime::*bib-database* *bibtex-database*)
-                                 (bibtex-runtime::*bib-macros* *bibtex-macros*))
-                             (with-open-file (f database)
-                               (bibtex-runtime:read-bib-database f)))))
-                        (t
-                         (let ((database (puri:uri-path database-uri)))
-                           (let ((bibtex-runtime::*bib-database* *bibtex-database*)
-                                 (bibtex-runtime::*bib-macros* *bibtex-macros*))
-                             (with-open-file (f database)
-                               (bibtex-runtime:read-bib-database f)))))))))
-         (call-next-method))
-        (t (warn "Unsupported bibilography database~&"))))
+  (let ((database-spec-list (cadr list)))
+    (loop for database in database-spec-list
+       do
+       (let ((bibtex-runtime::*bib-database* *bibtex-database*)
+             (bibtex-runtime::*bib-macros* *bibtex-macros*))
+         (with-open-file (f database)
+           (bibtex-runtime:read-bib-database f)))))
+  (call-next-method))
 
 (defmethod filter-gf ((filter (eql :smarkup-metadata))
                       (car (eql :bibtex-style))
