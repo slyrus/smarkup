@@ -5,9 +5,6 @@
   :name "smarkup"
   :author "Cyrus Harmon <cyrus@bobobeach.com>"
   :licence "BSD"
-  :version #.(with-open-file
-                 (vers (merge-pathnames "version.lisp-expr" *load-truename*))
-               (read vers))
   :description "S-Expression-based Markup Utilities"
   :depends-on (:alexandria
                :cl-fad
