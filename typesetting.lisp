@@ -4,8 +4,6 @@
 ;; typesetting.cl - cl-typesettng/cl-pdf output for smarkup
 ;;
 
-(in-package :smarkup)
-
 (in-package :tt)
 
 (defmacro with-paragraph (style-designator &body body)
@@ -88,6 +86,10 @@
   '(:font "Courier"
     :font-size 9))
 
+(defparameter *default-results-style*
+  '(:font "Courier-Bold"
+    :font-size 9))
+
 (defparameter *default-pre-style*
   '(:font "Courier"
     :font-size 9
@@ -160,6 +162,11 @@
 
 (defmethod process-element ((document-type (eql :pdf)) (tag (eql :code)) attrs body)
   (tt::with-dynamic-style *default-code-style*
+    (let ((*verbatim* t))
+      (call-next-method))))
+
+(defmethod process-element ((document-type (eql :pdf)) (tag (eql :results)) attrs body)
+  (tt::with-dynamic-style *default-results-style*
     (let ((*verbatim* t))
       (call-next-method))))
 

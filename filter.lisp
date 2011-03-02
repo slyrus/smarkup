@@ -59,7 +59,7 @@
   (let ((*print-case* :downcase))
     (apply #'format dest ctrl-string args)))
 
-(defun eval-lisp (tag body &key (show-commands t) (show-results t))
+(defun eval-lisp (tag body &key (show-commands t) (show-results t) (hunk t))
   (declare (ignore tag))
   (let ((lines
          (with-input-from-string (ifs (collect-string body))
@@ -68,20 +68,37 @@
     (if (not (or show-commands show-results))
         (progn (mapcar #'eval lines)
                nil)
-        `((:div :class "lisp")
-          ,@(mapcan #'(lambda (x)
-                        (cons `(:code 
-                                (:pre ,(when show-commands
-                                             (lc-format nil "~W~%" x))))
-                              (let ((output (eval x)))
-                                (if show-results
-                                    (list `(:results
-                                            ,(if (stringp output)
-                                                 (lc-format nil "~W~%" output)
-                                                 (format nil "~S~%" output)))
-                                          #\Newline)
-                                    (list #\Newline)))))
-                    lines)))))
+        (if hunk
+            `((:div :class "lisp")
+              (:div :class "lisp-code"
+                    (:code 
+                     (:pre ,(when show-commands
+                                  (lc-format nil "~{~W~^~%~%~}" lines)))))
+              ,@(progn
+                 (let ((output (eval `(progn ,@lines))))
+                   (if show-results
+                       (list `(:div :class "lisp-results"
+                                    (:pre (:results
+                                           ,(if (stringp output)
+                                                (lc-format nil "~W" output)
+                                                (format nil "~S" output))))))
+                      (list #\Newline)))))
+            `((:div :class "lisp")
+              ,@(mapcan #'(lambda (x)
+                            (cons `(:code 
+                                    (:pre ,(when show-commands
+                                                 (lc-format nil "~W" x))))
+                                  (let ((output (eval x)))
+                                    (if show-results
+                                        (list `(:div :class "lisp-results"
+                                                     (:pre
+                                                      (:results
+                                                       ,(if (stringp output)
+                                                            (lc-format nil "~W" output)
+                                                            (format nil "~S" output)))))
+                                              #\Newline)
+                                        (list #\Newline)))))
+                        lines))))))
 
 (defmethod filter-gf ((filter (eql :lisp)) (car (eql :lisp)) list)
   (eval-lisp car (cdr list)))
