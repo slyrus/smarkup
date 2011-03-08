@@ -113,7 +113,10 @@
   (eval-lisp car (cdr list) :show-results nil :show-commands nil))
 
 (defmethod filter-gf ((filter (eql :lisp)) (car (eql :lisp-no-eval)) list)
-  `((:div :class "lisp") (:pre ,@(cdr list))))
+  `((:div :class "lisp")
+    (:div :class "lisp-code"
+          (:code
+           (:pre ,@(cdr list))))))
 
 (defmethod filter-gf ((filter (eql :lisp)) (car (eql :lisp-value)) list)
   (eval (read-from-string (car (cdr list)))))
