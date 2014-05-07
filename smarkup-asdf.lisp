@@ -75,18 +75,20 @@
   (with-component-directory (c)
     (let ((unix-path (namestring (component-pathname c))))
       (run-program *pdflatex-program*
-                            (list unix-path))
+                   (list unix-path)
+                   :search t)
       ;; we have to do this twice to get the references right!
       ;; maybe 3x?
       (run-program *pdflatex-program*
-                            (list unix-path)))))
+                   (list unix-path)
+                   :search t))))
 
 (defmethod operation-done-p ((o generate-op) (c object-latex-file))
   (let ((on-disk-time
          (file-write-date (component-pathname c)))
         (obj (asdf:find-component
               (asdf:component-parent c)
-              (asdf:coerce-name (object-input-object c)))))
+              (asdf::coerce-name (object-input-object c)))))
     
     (let ((obj-date (asdf:component-property obj 'last-loaded)))
       (and on-disk-time
