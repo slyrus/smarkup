@@ -29,8 +29,4 @@
                     (:defpackage :smarkup :parameters :filter :quote-reader-macro))
    (:cl-source-file "typesetting"
                     :depends-on
-                    (:defpackage :smarkup :parameters :filter :quote-reader-macro))
-   (:static-file "version" :pathname #p"version.lisp-expr")
-   (:static-file "LICENSE")
-   (:static-file "README")
-   (:static-file "bootstrap" :pathname #p"bootstrap.cl")))
+                    (:defpackage :smarkup :parameters :filter :quote-reader-macro))))
