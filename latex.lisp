@@ -520,11 +520,20 @@
                              "png"))
                  (setf new-file (merge-pathnames (make-pathname :type "eps")
                                                  new-file))
-                 (print (sb-ext::run-program "/Users/sly/bin/png2eps"
-                                             (list image-file)
-                                             :environment '("PATH=/bobo/bin:/sw/bin:/sw/sbin:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/Users/sly/bin:/opt/local/bin:")
-                                             :if-output-exists :supersede
-                                             :output new-file)))
+                 #+sbcl
+                 (sb-ext:run-program "/Users/sly/bin/png2eps"
+                                      (list image-file)
+                                      :environment '("PATH=/bobo/bin:/sw/bin:/sw/sbin:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/Users/sly/bin:/opt/local/bin:")
+                                      :if-output-exists :supersede
+                                      :output new-file)
+                 #+abcl
+                 (sys:run-program "/Users/sly/bin/png2eps"
+                                  (list image-file)
+                                  :environment '("PATH=/bobo/bin:/sw/bin:/sw/sbin:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/Users/sly/bin:/opt/local/bin:")
+                                  :if-output-exists :supersede
+                                  :output new-file)
+                 #-(or sbcl abcl)
+                 (error "Not yet implemented!"))
                 (t
                  (cl-fad::copy-file image-file new-file :overwrite t)))
           (print (cons
