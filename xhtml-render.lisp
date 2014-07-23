@@ -129,13 +129,13 @@
 
   (defparameter *xml-char-map*
     (make-hash-table-from-alist
-     '((#\< . "&lt;")
+     `((#\< . "&lt;")
        (#\> . "&gt;")
        (#\& . "&amp;")
-       (#\No-Break_Space . "&#xa0;")
-       (#\LEFT_DOUBLE_QUOTATION_MARK . "&#8220;")
-       (#\RIGHT_DOUBLE_QUOTATION_MARK . "&#8221;")
-       (#\EM_DASH . "&#8212;")
+       #+(or sbcl abcl) (,*no-break-space* . "&#xa0;")
+       #+(or sbcl abcl) (,*left-double-quotation-mark* . "&#8220;")
+       #+(or sbcl abcl) (,*right-double-quotation-mark* . "&#8221;")
+       #+(or sbcl abcl) (,*em-dash* . "&#8212;")
        (:eol . #\Space))))
 
   (defun get-xml-char (c)
@@ -143,7 +143,6 @@
       (if xc xc c))))
 
 (defun render-text (out text)
-  (declare (optimize (debug 3)))
   (macrolet ((match-second-char (c1 c2 out-char)
                 `(let ((n (peek-char nil in nil nil)))
                   (if (eql n ,c2)
@@ -156,15 +155,15 @@
              (loop for c = (read-char in nil nil) while c
                 do 
                 (cond ((eql c #\~)
-                       (princ (get-xml-char #\No-Break_Space) out))
+                       (princ (get-xml-char *no-break-space*) out))
                       ((eql c #\.)
                        (match-second-char #\. #\\ #\Space))
                       ((eql c #\`)
-                       (match-second-char #\` #\` #\LEFT_DOUBLE_QUOTATION_MARK))
+                       (match-second-char #\` #\` *left-double-quotation-mark*))
                       ((eql c #\')
-                       (match-second-char #\' #\' #\RIGHT_DOUBLE_QUOTATION_MARK))
+                       (match-second-char #\' #\' *right-double-quotation-mark*))
                       ((eql c #\-)
-                       (match-second-char #\- #\- #\EM_DASH))
+                       (match-second-char #\- #\- *em-dash*))
                       (t (princ (get-xml-char c) out))))))
           (t (princ (get-xml-char text) out)))))
 
