@@ -129,7 +129,7 @@
 (defmethod filter-gf ((filter (eql :lisp)) (car (eql :code-block)) list)
   `((:div :class "lisp") (:pre ,@(cdr list))))
 
-(defmethod filter-gf ((filter (eql :lisp)) (car (eql :class)) list)
+(defmethod filter-gf ((filter (eql :lisp)) (car (eql :document-class)) list)
   (let ((class (cadr list)))
     `((:div :class "doc class")
       (:p :class "doc-type" "[CLASS]")
