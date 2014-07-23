@@ -60,7 +60,7 @@
              (loop for c = (read-char in nil nil) while c
                 do 
                 (cond ((eql c #\~)
-                       (write-char #\No-Break_Space out))
+                       (write-char *no-break-space* out))
                       ((eql c #\.)
                        (match-second-char #\. #\\ #\Space))
                       ((eql c #\`)
