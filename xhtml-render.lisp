@@ -273,12 +273,16 @@
             ,(format nil "[~A]" refnum))))))
 
 (defmethod process-element ((document-type (eql :xhtml)) (tag (eql :image)) attrs body)
-  (call-next-method :xhtml
-                    :img
-                    `((:src . ,(if (pathnamep (car body))
-                                   (namestring (car body))
-                                   (car body))))
-                    nil))
+  (destructuring-bind (src &rest (&key width))
+      body
+    (call-next-method :xhtml
+                      :img
+                      (append `((:src . ,(if (pathnamep src)
+                                              (namestring src)
+                                              src)))
+                              (when width
+                                `((:width . ,(format nil "~D" width)))))
+                      nil)))
 
 (defmethod process-element ((document-type (eql :xhtml)) (tag (eql :bibliography)) attrs body)
   (call-next-method :xhtml
