@@ -8,6 +8,30 @@
 
 (in-package #:smarkup)
 
+;;; characters
+
+(defparameter *no-break-space*
+  #+scbl #\No-Break_Space
+  #+abcl #\u00A0
+  #-(or sbcl abcl) nil)
+
+(defparameter *left-double-quotation-mark*
+  #+scbl #\LEFT_DOUBLE_QUOTATION_MARK
+  #+abcl #\u201c
+  #-(or sbcl abcl) nil)
+
+(defparameter *right-double-quotation-mark*
+  #+scbl #\RIGHT_DOUBLE_QUOTATION_MARK
+  #+abcl #\u201d
+  #-(or sbcl abcl) nil)
+
+(defparameter *em-dash*
+  #+scbl #\EM_DASH
+  #+abcl #\u2014
+  #-(or sbcl abcl) nil)
+
+;;; utilities
+
 (defun keywordicate (x)
   (cond ((keywordp x) x)
         (t (intern (string-upcase x) 'keyword))))
@@ -180,7 +204,7 @@
 
 (defun parse-tag-and-attribute-list (list)
   "Takes a list of the form (tag :attr1 value1 :attr2 value2) and
-returns a the two values tag and ((:attr1 . value1) (:attr2
+returns the two values tag and ((:attr1 . value1) (:attr2
   . value2))."
   (values (car list)
           (loop for (name value) on (cdr list) by #'cddr
