@@ -117,10 +117,8 @@
                      (attributes-to-list (cdr tag)))))))
 
 
-
-
 (eval-when (:compile-toplevel :load-toplevel :execute)
-
+  
   (defun make-hash-table-from-alist (alist &key (test #'eql))
     (let ((h (make-hash-table :test test)))
       (loop for (x . y) in alist
@@ -291,7 +289,6 @@
                        `(:item ,(citation-string cite)))))
 
 (defmethod process-element ((document-type (eql :xhtml)) (tag (eql :style-inline)) attrs body)
-  (print (car body))
   (princ "<style>" *stream*)
   (terpri *stream*)
   (princ (car body) *stream*)
