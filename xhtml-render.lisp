@@ -284,14 +284,6 @@
                                 `((:width . ,(format nil "~D" width)))))
                       nil)))
 
-(defmethod process-element ((document-type (eql :xhtml)) (tag (eql :bibliography)) attrs body)
-  (call-next-method :xhtml
-                    :list
-                    nil
-                    (loop for cite in (get-cite-keys)
-                       collect
-                       `(:item ,(citation-string cite)))))
-
 (defmethod process-element ((document-type (eql :xhtml)) (tag (eql :style-inline)) attrs body)
   (princ "<style>" *stream*)
   (terpri *stream*)

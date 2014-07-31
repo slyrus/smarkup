@@ -24,6 +24,9 @@
    (:cl-source-file "xhtml-render"
                     :depends-on
                     (:defpackage :smarkup :filter :quote-reader-macro))
+   (:cl-source-file "xhtml-svg-render"
+                    :depends-on
+                    (:defpackage :smarkup :filter :xhtml-render))
    (:cl-source-file "latex"
                     :depends-on
                     (:defpackage :smarkup :parameters :filter :quote-reader-macro))
