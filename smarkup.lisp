@@ -11,22 +11,22 @@
 ;;; characters
 
 (defparameter *no-break-space*
-  #+scbl #\No-Break_Space
+  #+sbcl #\No-Break_Space
   #+abcl #\u00A0
   #-(or sbcl abcl) nil)
 
 (defparameter *left-double-quotation-mark*
-  #+scbl #\LEFT_DOUBLE_QUOTATION_MARK
+  #+sbcl #\LEFT_DOUBLE_QUOTATION_MARK
   #+abcl #\u201c
   #-(or sbcl abcl) nil)
 
 (defparameter *right-double-quotation-mark*
-  #+scbl #\RIGHT_DOUBLE_QUOTATION_MARK
+  #+sbcl #\RIGHT_DOUBLE_QUOTATION_MARK
   #+abcl #\u201d
   #-(or sbcl abcl) nil)
 
 (defparameter *em-dash*
-  #+scbl #\EM_DASH
+  #+sbcl #\EM_DASH
   #+abcl #\u2014
   #-(or sbcl abcl) nil)
 
