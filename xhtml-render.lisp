@@ -146,8 +146,8 @@
                   (if (eql n ,c2)
                       (progn
                         (read-char in)
-                        (princ ,(get-xml-char out-char) out))
-                      (princ ,(get-xml-char c1) out)))))
+                        (princ (get-xml-char ,out-char) out))
+                      (princ (get-xml-char ,c1) out)))))
     (cond ((stringp text)
            (with-input-from-string (in text)
              (loop for c = (read-char in nil nil) while c
