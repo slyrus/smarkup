@@ -262,6 +262,7 @@
   (call-next-method))
 
 (defmethod filter-gf ((filter (eql :html-metadata)) (car (eql :html-metadata)) list)
+  (setf *html-css-stylesheet-url* nil)
   (filter-gf filter (cadr list) (cdr list))
   nil)
 
