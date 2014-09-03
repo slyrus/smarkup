@@ -310,13 +310,16 @@
                                    `(:title ,@*document-title*))
                             ,@(print (loop for stylesheet-spec in *html-css-stylesheet-url*
                                        collect
-                                       (destructuring-bind (sheet &optional inline)
+                                       (destructuring-bind (sheet &key inline media)
                                            stylesheet-spec
                                          (if inline
                                              `(:style-inline
-                                               ,(alexandria:read-file-into-byte-vector sheet))
-                                             `(:link :rel "stylesheet" :type "text/css"
-                                                     :href ,sheet))))))
+                                               ,(alexandria:read-file-into-string sheet))
+                                             `(:link :rel "stylesheet"
+                                               :type "text/css"
+                                               :href ,sheet
+                                               ,@(append
+                                                  (when media `(:media ,media)))))))))
                            (:body ,@sexp))))))))
 
 (defun render-sexp-to-string (sexp)
